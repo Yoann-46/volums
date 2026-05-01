@@ -2,95 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Volums — Editorial luxury design system
+   Palette inspired by Parisian haussmannien: deep ink navy, warm cream, copper accent.
+   All colors HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Brand palette */
+    --ink: 218 16% 12%;            /* #1A1D24 deep navy */
+    --ink-soft: 218 14% 18%;
+    --cream: 39 33% 93%;           /* #F3EFE7 warm paper */
+    --cream-soft: 38 30% 96%;
+    --copper: 26 53% 51%;          /* #C97B3F accent */
+    --copper-soft: 28 45% 62%;
+    --slate: 218 9% 45%;           /* muted text */
+    --hairline: 218 12% 82%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Semantic tokens — light (cream) surface */
+    --background: var(--cream);
+    --foreground: var(--ink);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --card: var(--cream-soft);
+    --card-foreground: var(--ink);
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --popover: var(--cream-soft);
+    --popover-foreground: var(--ink);
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --primary: var(--ink);
+    --primary-foreground: var(--cream);
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: 38 22% 88%;
+    --secondary-foreground: var(--ink);
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 38 18% 90%;
+    --muted-foreground: var(--slate);
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: var(--copper);
+    --accent-foreground: var(--cream);
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive: 0 65% 48%;
+    --destructive-foreground: var(--cream);
 
-    --radius: 0.5rem;
+    --border: var(--hairline);
+    --input: var(--hairline);
+    --ring: var(--ink);
 
-    --sidebar-background: 0 0% 98%;
+    --radius: 0.125rem;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Editorial type scale tokens */
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar (unused but preserve shadcn defaults consistency) */
+    --sidebar-background: var(--cream);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--ink);
+    --sidebar-primary-foreground: var(--cream);
+    --sidebar-accent: 38 22% 88%;
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: var(--ink);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: var(--ink);
+    --foreground: var(--cream);
+    --card: var(--ink-soft);
+    --card-foreground: var(--cream);
+    --popover: var(--ink-soft);
+    --popover-foreground: var(--cream);
+    --primary: var(--cream);
+    --primary-foreground: var(--ink);
+    --secondary: 218 14% 22%;
+    --secondary-foreground: var(--cream);
+    --muted: 218 14% 22%;
+    --muted-foreground: 218 9% 65%;
+    --accent: var(--copper-soft);
+    --accent-foreground: var(--ink);
+    --border: 218 14% 22%;
+    --input: 218 14% 22%;
+    --ring: var(--cream);
   }
 }
 
@@ -98,8 +91,60 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-weight: 300;
+  }
+  ::selection {
+    background: hsl(var(--ink));
+    color: hsl(var(--cream));
+  }
+}
+
+@layer components {
+  /* Editorial typographic primitives — used across the brand */
+  .font-display {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .font-mono-meta {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.7rem;
+  }
+  .italic-display {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* Logo mark — square with arch (interpreted from FlatAvenue/Volums brand) */
+  .volums-mark {
+    @apply inline-flex items-center justify-center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid currentColor;
+  }
+
+  /* Hairline divider used throughout editorial layout */
+  .hairline {
+    height: 1px;
+    background: hsl(var(--foreground) / 0.15);
+  }
+
+  /* Hover lift used on apartment cards */
+  .lift {
+    transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 600ms;
+  }
+  .lift:hover {
+    transform: translateY(-4px);
   }
 }
