@@ -1,94 +1,11 @@
-import beaumarchais from "@/assets/appt-beaumarchais.jpg";
-import lenoirT5 from "@/assets/appt-richard-lenoir-t5.jpg";
-import duplex from "@/assets/appt-duplex.jpg";
-import t2 from "@/assets/appt-t2.jpg";
-
-type Appt = {
-  ref: string;
-  dispo: string;
-  arrondissement: string;
-  quartier: string;
-  name: string;
-  nameItalic: string;
-  baseline: string;
-  surface: string;
-  chambres: string;
-  sdb: string;
-  etage: string;
-  couchages: string;
-  loyer: string;
-  image: string;
-};
-
-const apts: Appt[] = [
-  {
-    ref: "4 BEAUMAR 1",
-    dispo: "04 MAI 2026",
-    arrondissement: "11ᵉ Arrondissement",
-    quartier: "Bastille",
-    name: "Appt",
-    nameItalic: "Beaumarchais",
-    baseline: "T4 haussmannien de 105 m² tout équipé, boulevard Beaumarchais.",
-    surface: "105 m²",
-    chambres: "3",
-    sdb: "2",
-    etage: "1ᵉʳ · ascenseur",
-    couchages: "6 personnes",
-    loyer: "7 500 €",
-    image: beaumarchais,
-  },
-  {
-    ref: "3R LENOIR 2R",
-    dispo: "29 AVRIL 2026",
-    arrondissement: "11ᵉ Arrondissement",
-    quartier: "Richard Lenoir",
-    name: "Appt",
-    nameItalic: "Richard Lenoir",
-    baseline: "T5 haussmannien de 147 m² alliant ancien et design contemporain.",
-    surface: "147 m²",
-    chambres: "4",
-    sdb: "3",
-    etage: "3ᵉ · ascenseur",
-    couchages: "10 personnes",
-    loyer: "8 500 €",
-    image: lenoirT5,
-  },
-  {
-    ref: "11 BEAUMAR 5L",
-    dispo: "29 AVRIL 2026",
-    arrondissement: "4ᵉ Arrondissement",
-    quartier: "Marais",
-    name: "Duplex",
-    nameItalic: "Beaumarchais",
-    baseline: "Duplex contemporain de 80 m² sous verrière, design minimaliste.",
-    surface: "80 m²",
-    chambres: "2",
-    sdb: "2",
-    etage: "5ᵉ · ascenseur",
-    couchages: "6 personnes",
-    loyer: "7 500 €",
-    image: duplex,
-  },
-  {
-    ref: "11 BEAUMAR 2R",
-    dispo: "29 AVRIL 2026",
-    arrondissement: "4ᵉ Arrondissement",
-    quartier: "Marais",
-    name: "Pied-à-terre",
-    nameItalic: "Beaumarchais",
-    baseline: "T2 chic et chaleureux de 45 m², finitions haut de gamme.",
-    surface: "45 m²",
-    chambres: "1",
-    sdb: "1",
-    etage: "2ᵉ · ascenseur",
-    couchages: "4 personnes",
-    loyer: "3 200 €",
-    image: t2,
-  },
-];
+import { Link } from "react-router-dom";
+import { appartements, type Appt } from "@/data/appartements";
 
 const Card = ({ a, idx }: { a: Appt; idx: number }) => (
-  <article className="group lift bg-cream-soft border border-hairline">
+  <Link
+    to={`/appartements/${a.slug}`}
+    className="group lift bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
+  >
     <div className="relative aspect-[4/3] overflow-hidden bg-ink/5">
       <img
         src={a.image}
@@ -117,7 +34,7 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
         <Stat label="SDB" value={a.sdb} />
         <Stat label="Étage" value={a.etage} small />
         <Stat label="Couchages" value={a.couchages} small />
-        <Stat label="Min." value="30 nuits" small />
+        <Stat label="Min." value={a.minStay} small />
       </div>
 
       <div className="mt-7 flex items-end justify-between bg-ink text-cream p-5">
@@ -133,15 +50,20 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
         </span>
       </div>
 
-      <div className="mt-6 flex items-center gap-5 font-mono-meta text-slate">
-        <span>Internet</span>
-        <span className="text-hairline">·</span>
-        <span>Ménage hebdo</span>
-        <span className="text-hairline">·</span>
-        <span>Linge inclus</span>
+      <div className="mt-6 flex items-center justify-between">
+        <div className="flex items-center gap-5 font-mono-meta text-slate">
+          <span>Internet</span>
+          <span className="text-hairline">·</span>
+          <span>Ménage</span>
+          <span className="text-hairline">·</span>
+          <span>Linge</span>
+        </div>
+        <span className="font-mono-meta text-ink group-hover:text-copper transition-colors">
+          Voir →
+        </span>
       </div>
     </div>
-  </article>
+  </Link>
 );
 
 const Stat = ({ label, value, small }: { label: string; value: string; small?: boolean }) => (
@@ -168,8 +90,8 @@ export const Appartements = () => (
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-        {apts.map((a, i) => (
-          <Card key={a.ref} a={a} idx={i} />
+        {appartements.map((a, i) => (
+          <Card key={a.slug} a={a} idx={i} />
         ))}
       </div>
     </div>
