@@ -40,17 +40,19 @@ export const PourQui = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-ink/15">
         {audiences.map(({ tag, Icon, title, body, bullets }) => (
           <div key={tag} className="py-12 md:py-0 md:px-12 first:md:pl-0 last:md:pr-0">
-            <span className="font-mono-meta text-copper">— {tag}</span>
-            <div className="mt-8 inline-flex w-14 h-14 items-center justify-center border border-ink/40">
-              <Icon className="w-6 h-6" strokeWidth={1.4} />
+            <div className="flex items-center gap-5">
+              <div className="inline-flex w-14 h-14 shrink-0 items-center justify-center border border-ink/40">
+                <Icon className="w-6 h-6" strokeWidth={1.4} />
+              </div>
+              <span className="font-mono-meta text-copper">— {tag}</span>
             </div>
-            <h3 className="font-display text-3xl md:text-4xl mt-8 leading-tight">{title}</h3>
-            <p className="text-slate mt-5 max-w-md leading-relaxed">{body}</p>
-            <ul className="mt-10 space-y-3">
+            <h3 className="font-display text-3xl md:text-4xl mt-10 leading-tight">{title}</h3>
+            <p className="text-slate mt-5 max-w-md leading-relaxed text-lg">{body}</p>
+            <ul className="mt-10 space-y-4">
               {bullets.map((b) => (
-                <li key={b} className="font-mono-meta text-copper flex gap-4 normal-case">
-                  <span aria-hidden>·</span>
-                  <span className="text-ink/80 normal-case tracking-wider">{b}</span>
+                <li key={b} className="flex gap-4 items-baseline">
+                  <span aria-hidden className="text-copper">·</span>
+                  <span className="font-display text-lg text-ink/85">{b}</span>
                 </li>
               ))}
             </ul>
