@@ -6,6 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import ApptDetail from "./pages/ApptDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider } from "./admin/AuthContext";
+import { RequireAuth } from "./admin/RequireAuth";
+import { AdminLayout } from "./admin/AdminLayout";
+import Login from "./admin/pages/Login";
+import PropertyList from "./admin/pages/PropertyList";
+import PropertyEdit from "./admin/pages/PropertyEdit";
 
 const queryClient = new QueryClient();
 
@@ -15,12 +21,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/appartements/:slug" element={<ApptDetail />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/appartements/:slug" element={<ApptDetail />} />
+
+            <Route path="/admin/login" element={<Login />} />
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth>
+                  <AdminLayout />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<PropertyList />} />
+              <Route path="properties" element={<PropertyList />} />
+              <Route path="properties/new" element={<PropertyEdit />} />
+              <Route path="properties/:id" element={<PropertyEdit />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { appartements, type Appt } from "@/data/appartements";
+import { useAppartements } from "@/data/queries";
+import type { Appt } from "@/data/types";
 
 const Card = ({ a, idx }: { a: Appt; idx: number }) => (
   <Link
@@ -73,27 +74,39 @@ const Stat = ({ label, value, small }: { label: string; value: string; small?: b
   </div>
 );
 
-export const Appartements = () => (
-  <section id="appartements" className="bg-cream-soft text-ink py-16 md:py-20">
-    <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
-        <div>
-          <span className="font-mono-meta text-copper">— La sélection</span>
-          <h2 className="font-display text-4xl md:text-5xl lg:text-6xl mt-6 leading-[1.05] max-w-2xl">
-            Quatre adresses, <span className="italic-display">prêtes à vivre.</span>
-          </h2>
-        </div>
-        <p className="text-slate max-w-sm">
-          Chaque bien est inspecté, photographié et stylisé par notre équipe parisienne.
-          Aucune annonce partenaire.
-        </p>
-      </div>
+export const Appartements = () => {
+  const { data: appartements = [], isLoading } = useAppartements();
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-        {appartements.map((a, i) => (
-          <Card key={a.slug} a={a} idx={i} />
-        ))}
+  return (
+    <section id="appartements" className="bg-cream-soft text-ink py-16 md:py-20">
+      <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
+          <div>
+            <span className="font-mono-meta text-copper">— La sélection</span>
+            <h2 className="font-display text-4xl md:text-5xl lg:text-6xl mt-6 leading-[1.05] max-w-2xl">
+              Notre sélection, <span className="italic-display">prête à vivre.</span>
+            </h2>
+          </div>
+          <p className="text-slate max-w-sm">
+            Chaque bien est inspecté, photographié et stylisé par notre équipe parisienne.
+            Aucune annonce partenaire.
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+            {[0, 1].map((i) => (
+              <div key={i} className="aspect-[16/10] bg-ink/5 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+            {appartements.map((a, i) => (
+              <Card key={a.slug} a={a} idx={i} />
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};

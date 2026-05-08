@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Heart, Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
-import { getAppt, appartements } from "@/data/appartements";
+import { useAppartement, useAppartements } from "@/data/queries";
 
 const ApptDetail = () => {
   const { slug } = useParams();
-  const appt = getAppt(slug);
+  const { data: appt, isLoading } = useAppartement(slug);
+  const { data: allAppartements = [] } = useAppartements();
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   useEffect(() => {
@@ -31,9 +32,18 @@ const ApptDetail = () => {
     };
   }, [lightbox, appt]);
 
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="font-mono-meta text-slate">Chargement…</div>
+      </main>
+    );
+  }
   if (!appt) return <Navigate to="/" replace />;
 
-  const [main, ...rest] = appt.gallery;
+  const [main, ...rest] = appt.gallery.length > 0
+    ? appt.gallery
+    : [{ src: "", label: "", caption: "" }];
 
   return (
     <main className="min-h-screen bg-cream text-ink">
@@ -54,24 +64,22 @@ const ApptDetail = () => {
 
       {/* Title block */}
       <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-12 md:pt-16">
-        <div className="flex items-center gap-3 font-mono-meta text-slate">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono-meta text-slate text-xs md:text-sm">
           <span>{appt.arrondissement}</span>
           <span className="text-hairline">·</span>
           <span>{appt.quartier}</span>
           <span className="text-hairline">·</span>
           <span className="text-copper">Réf {appt.ref}</span>
-          <span className="text-hairline">·</span>
-          <span>Signature</span>
         </div>
 
         <div className="mt-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
           <div>
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02]">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.02]">
               {appt.name} <span className="italic-display">{appt.nameItalic}</span>
             </h1>
             <p className="text-slate mt-4 max-w-2xl">{appt.shortDescription}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               aria-label="Sauvegarder"
               className="w-11 h-11 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
@@ -86,7 +94,7 @@ const ApptDetail = () => {
             </button>
             <a
               href="#booking"
-              className="inline-flex items-center gap-2 bg-ink text-cream px-6 h-11 font-mono-meta hover:bg-copper transition-colors"
+              className="inline-flex items-center gap-2 bg-ink text-cream px-5 sm:px-6 h-11 font-mono-meta text-sm hover:bg-copper transition-colors"
             >
               Demander une visite →
             </a>
@@ -256,7 +264,7 @@ const ApptDetail = () => {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {appartements
+          {allAppartements
             .filter((a) => a.slug !== appt.slug)
             .slice(0, 3)
             .map((a) => (
