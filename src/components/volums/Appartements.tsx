@@ -6,29 +6,29 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
     to={`/appartements/${a.slug}`}
     className="group lift bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
   >
-    <div className="relative aspect-[4/3] overflow-hidden bg-ink/5">
+    <div className="relative aspect-[16/10] overflow-hidden bg-ink/5">
       <img
         src={a.image}
         alt={`${a.name} ${a.nameItalic} — ${a.quartier}, Paris`}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
         loading={idx > 1 ? "lazy" : "eager"}
       />
-      <div className="absolute top-0 left-0 right-0 p-5 flex items-start justify-between text-cream bg-gradient-to-b from-ink/60 to-transparent">
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-start justify-between text-cream bg-gradient-to-b from-ink/60 to-transparent">
         <span className="font-mono-meta">Réf · {a.ref}</span>
         <span className="font-mono-meta">Dispo · {a.dispo}</span>
       </div>
     </div>
 
-    <div className="p-7 md:p-9">
-      <span className="font-mono-meta text-copper">
+    <div className="p-5 md:p-6">
+      <span className="font-mono-meta text-copper text-xs">
         {a.arrondissement} · {a.quartier}
       </span>
-      <h3 className="font-display text-3xl md:text-4xl mt-3 leading-tight">
+      <h3 className="font-display text-2xl md:text-3xl mt-2 leading-tight">
         {a.name} <span className="italic-display">{a.nameItalic}</span>
       </h3>
-      <p className="text-slate mt-4 leading-relaxed">{a.baseline}</p>
+      <p className="text-slate mt-2 text-sm leading-relaxed">{a.baseline}</p>
 
-      <div className="grid grid-cols-3 gap-4 mt-8 py-6 border-y border-hairline">
+      <div className="grid grid-cols-3 gap-3 mt-5 py-4 border-y border-hairline">
         <Stat label="Surface" value={a.surface} />
         <Stat label="Chambres" value={a.chambres} />
         <Stat label="SDB" value={a.sdb} />
@@ -37,28 +37,28 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
         <Stat label="Min." value={a.minStay} small />
       </div>
 
-      <div className="mt-7 flex items-end justify-between bg-ink text-cream p-5">
+      <div className="mt-5 flex items-end justify-between bg-ink text-cream p-4">
         <div>
-          <span className="font-mono-meta text-cream/60">Loyer · charges incl.</span>
-          <div className="font-display text-2xl mt-1">
+          <span className="font-mono-meta text-cream/60 text-xs">Loyer · charges incl.</span>
+          <div className="font-display text-xl mt-1">
             {a.loyer}
-            <span className="text-cream/60 text-base"> / mois</span>
+            <span className="text-cream/60 text-sm"> / mois</span>
           </div>
         </div>
-        <span className="font-mono-meta text-cream/60 text-right">
+        <span className="font-mono-meta text-cream/60 text-right text-xs">
           De 1<br />à 12 mois
         </span>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center gap-5 font-mono-meta text-slate">
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-3 font-mono-meta text-slate text-xs">
           <span>Internet</span>
           <span className="text-hairline">·</span>
           <span>Ménage</span>
           <span className="text-hairline">·</span>
           <span>Linge</span>
         </div>
-        <span className="font-mono-meta text-ink group-hover:text-copper transition-colors">
+        <span className="font-mono-meta text-ink group-hover:text-copper transition-colors text-xs">
           Voir →
         </span>
       </div>
@@ -68,8 +68,8 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
 
 const Stat = ({ label, value, small }: { label: string; value: string; small?: boolean }) => (
   <div>
-    <div className="font-mono-meta text-slate">{label}</div>
-    <div className={`font-display mt-1 ${small ? "text-base" : "text-xl"}`}>{value}</div>
+    <div className="font-mono-meta text-slate text-xs">{label}</div>
+    <div className={`font-display mt-0.5 ${small ? "text-sm" : "text-base"}`}>{value}</div>
   </div>
 );
 
