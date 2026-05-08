@@ -17,7 +17,7 @@ const points = [
 ];
 
 export const Pourquoi = () => (
-  <section id="pourquoi" className="bg-cream text-ink py-24 md:py-32">
+  <section id="pourquoi" className="bg-cream text-ink py-24 md:py-28 md:pb-16">
     <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         <div className="lg:col-span-5">

@@ -74,7 +74,7 @@ const Stat = ({ label, value, small }: { label: string; value: string; small?: b
 );
 
 export const Appartements = () => (
-  <section id="appartements" className="bg-cream-soft text-ink py-24 md:py-32">
+  <section id="appartements" className="bg-cream-soft text-ink py-16 md:py-20">
     <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
         <div>
