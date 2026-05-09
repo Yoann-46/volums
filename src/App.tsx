@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import ApptDetail from "./pages/ApptDetail.tsx";
+import AppartementsList from "./pages/AppartementsList.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "./admin/AuthContext";
 import { RequireAuth } from "./admin/RequireAuth";
@@ -24,6 +25,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/appartements" element={<AppartementsList />} />
             <Route path="/appartements/:slug" element={<ApptDetail />} />
 
             <Route path="/admin/login" element={<Login />} />

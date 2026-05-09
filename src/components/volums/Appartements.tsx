@@ -101,11 +101,24 @@ export const Appartements = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-            {appartements.map((a, i) => (
-              <Card key={a.slug} a={a} idx={i} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+              {appartements.slice(0, 4).map((a, i) => (
+                <Card key={a.slug} a={a} idx={i} />
+              ))}
+            </div>
+            {appartements.length > 4 && (
+              <div className="mt-12 md:mt-16 flex justify-center">
+                <Link
+                  to="/appartements"
+                  className="inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 font-mono-meta hover:bg-copper transition-colors"
+                >
+                  Voir les {appartements.length} appartements
+                  <span aria-hidden>→</span>
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
