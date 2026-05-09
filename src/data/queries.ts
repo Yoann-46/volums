@@ -21,13 +21,8 @@ type PropertyRow = {
   etage: string;
   couchages: string;
   min_stay: string;
-  loyer: string;
   loyer_num: number;
-  price_per_sqm: string;
   inclus: string[];
-  transport: string;
-  host_name: string;
-  host_role: string;
   cover_photo_id: string | null;
   is_published: boolean;
   sort_order: number;
@@ -75,14 +70,10 @@ const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
     etage: p.etage,
     couchages: p.couchages,
     minStay: p.min_stay,
-    loyer: p.loyer,
     loyerNum: p.loyer_num,
-    pricePerSqm: p.price_per_sqm,
     image: cover ? photoUrl(cover.storage_path) : "",
     gallery,
     inclus: p.inclus,
-    transport: p.transport,
-    host: { name: p.host_name, role: p.host_role },
     isPublished: p.is_published,
     sortOrder: p.sort_order,
   };

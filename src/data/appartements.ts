@@ -34,9 +34,7 @@ export const fallbackAppartements: Appt[] = [
     etage: "1ᵉʳ · ascenseur",
     couchages: "6 personnes",
     minStay: "30 nuits",
-    loyer: "7 500 €",
     loyerNum: 7500,
-    pricePerSqm: "71 €/m²",
     image: beaumarchais,
     gallery: [
       { src: beaumarchais, label: "01", caption: "Séjour à l'heure dorée" },
@@ -57,8 +55,6 @@ export const fallbackAppartements: Appt[] = [
       "Smart TV · Netflix & Canal+",
       "Lave-linge / sèche-linge",
     ],
-    transport: "Métro Chemin Vert (L8) à 2 min · Bastille (L1·5·8) à 6 min",
-    host: { name: "Élise Caron", role: "Votre hôte résidente · Paris 11ᵉ" },
   },
   {
     slug: "appt-richard-lenoir",
@@ -82,9 +78,7 @@ export const fallbackAppartements: Appt[] = [
     etage: "3ᵉ · ascenseur",
     couchages: "10 personnes",
     minStay: "30 nuits",
-    loyer: "8 500 €",
     loyerNum: 8500,
-    pricePerSqm: "58 €/m²",
     image: lenoirT5,
     gallery: [
       { src: lenoirT5, label: "01", caption: "Séjour double traversant" },
@@ -103,8 +97,6 @@ export const fallbackAppartements: Appt[] = [
       "Ascenseur · 3ᵉ étage",
       "Bureau équipé pour télétravail",
     ],
-    transport: "Métro Richard Lenoir (L5) à 1 min · Oberkampf (L5·9) à 5 min",
-    host: { name: "Élise Caron", role: "Votre hôte résidente · Paris 11ᵉ" },
   },
   {
     slug: "duplex-beaumarchais",
@@ -127,9 +119,7 @@ export const fallbackAppartements: Appt[] = [
     etage: "5ᵉ · ascenseur",
     couchages: "6 personnes",
     minStay: "30 nuits",
-    loyer: "7 500 €",
     loyerNum: 7500,
-    pricePerSqm: "94 €/m²",
     image: duplex,
     gallery: [
       { src: duplex, label: "01", caption: "Séjour sous verrière" },
@@ -145,8 +135,6 @@ export const fallbackAppartements: Appt[] = [
       "Verrière zénithale",
       "Climatisation",
     ],
-    transport: "Métro Saint-Paul (L1) à 4 min · Bastille (L1·5·8) à 6 min",
-    host: { name: "Élise Caron", role: "Votre hôte résidente · Paris 4ᵉ" },
   },
   {
     slug: "pied-a-terre-beaumarchais",
@@ -169,9 +157,7 @@ export const fallbackAppartements: Appt[] = [
     etage: "2ᵉ · ascenseur",
     couchages: "4 personnes",
     minStay: "30 nuits",
-    loyer: "3 200 €",
     loyerNum: 3200,
-    pricePerSqm: "71 €/m²",
     image: t2,
     gallery: [
       { src: t2, label: "01", caption: "Séjour avec cheminée" },
@@ -185,7 +171,5 @@ export const fallbackAppartements: Appt[] = [
       "Charges & taxe de séjour incluses",
       "Cheminée d'origine",
     ],
-    transport: "Métro Saint-Paul (L1) à 3 min · Chemin Vert (L8) à 5 min",
-    host: { name: "Élise Caron", role: "Votre hôte résidente · Paris 4ᵉ" },
   },
 ];

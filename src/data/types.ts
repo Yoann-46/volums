@@ -24,14 +24,10 @@ export type Appt = {
   etage: string;
   couchages: string;
   minStay: string;
-  loyer: string;
   loyerNum: number;
-  pricePerSqm: string;
   image: string;
   gallery: Photo[];
   inclus: string[];
-  transport: string;
-  host: { name: string; role: string };
   isPublished?: boolean;
   sortOrder?: number;
 };

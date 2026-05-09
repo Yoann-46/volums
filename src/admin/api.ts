@@ -17,13 +17,8 @@ export type PropertyInput = {
   etage: string;
   couchages: string;
   min_stay: string;
-  loyer: string;
   loyer_num: number;
-  price_per_sqm: string;
   inclus: string[];
-  transport: string;
-  host_name: string;
-  host_role: string;
   is_published: boolean;
   sort_order: number;
 };

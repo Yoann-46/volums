@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { listProperties, deleteProperty, updateProperty } from "../api";
+import { formatEuro } from "@/lib/format";
 import { toast } from "sonner";
 
 const PropertyList = () => {
@@ -75,7 +76,7 @@ const PropertyList = () => {
                 </div>
               </div>
               <div className="md:col-span-3 text-sm">{p.quartier}</div>
-              <div className="md:col-span-2 font-display">{p.loyer}</div>
+              <div className="md:col-span-2 font-display">{formatEuro(p.loyer_num)}</div>
               <div className="md:col-span-2 flex items-center justify-end gap-2">
                 <button
                   onClick={() => togglePublish(p.id, p.is_published)}

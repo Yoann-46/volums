@@ -12,8 +12,7 @@
   - `inclus` : sépare les éléments par ` | ` aussi
   - `is_published` : `TRUE` ou `FALSE`
   - `sort_order` : nombre entier (ordre d'affichage, ex: 1, 2, 3, …)
-  - `loyer` : avec espaces et symbole, ex: `7 500 €`
-  - `loyer_num` : juste le chiffre, ex: `7500`
+  - `loyer_num` : juste un nombre entier en euros, ex: `7500` (le site formate automatiquement → "7 500 €")
 
 ## Étape 3 — Partager
 1. **Fichier** → **Partager** → **Toute personne disposant du lien** → **Lecteur**.

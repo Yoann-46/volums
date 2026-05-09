@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAppartements } from "@/data/queries";
+import { formatEuro } from "@/lib/format";
 import type { Appt } from "@/data/types";
 
 const Card = ({ a, idx }: { a: Appt; idx: number }) => (
@@ -42,7 +43,7 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => (
         <div>
           <span className="font-mono-meta text-cream/60 text-xs">Loyer · charges incl.</span>
           <div className="font-display text-xl mt-1">
-            {a.loyer}
+            {formatEuro(a.loyerNum)}
             <span className="text-cream/60 text-sm"> / mois</span>
           </div>
         </div>

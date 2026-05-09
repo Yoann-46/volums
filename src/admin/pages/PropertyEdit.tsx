@@ -27,13 +27,8 @@ const empty: PropertyInput = {
   etage: "",
   couchages: "",
   min_stay: "30 nuits",
-  loyer: "",
   loyer_num: 0,
-  price_per_sqm: "",
   inclus: [""],
-  transport: "",
-  host_name: "",
-  host_role: "",
   is_published: true,
   sort_order: 0,
 };
@@ -79,13 +74,8 @@ const PropertyEdit = () => {
         etage: existing.etage,
         couchages: existing.couchages,
         min_stay: existing.min_stay,
-        loyer: existing.loyer,
         loyer_num: existing.loyer_num,
-        price_per_sqm: existing.price_per_sqm,
         inclus: existing.inclus,
-        transport: existing.transport,
-        host_name: existing.host_name,
-        host_role: existing.host_role,
         is_published: existing.is_published,
         sort_order: existing.sort_order,
       });
@@ -245,28 +235,17 @@ const PropertyEdit = () => {
             <Field label="Couchages"><input value={form.couchages} onChange={(e) => set("couchages", e.target.value)} className={inputCls} /></Field>
             <Field label="Séjour minimum"><input value={form.min_stay} onChange={(e) => set("min_stay", e.target.value)} className={inputCls} /></Field>
           </Grid>
-          <Field label="Transport">
-            <input value={form.transport} onChange={(e) => set("transport", e.target.value)} className={inputCls} />
-          </Field>
         </Section>
 
-        <Section title="Tarifs">
-          <Grid>
-            <Field label="Loyer (affiché, ex: 7 500 €)">
-              <input value={form.loyer} onChange={(e) => set("loyer", e.target.value)} className={inputCls} />
-            </Field>
-            <Field label="Loyer (chiffre, ex: 7500)">
-              <input
-                type="number"
-                value={form.loyer_num}
-                onChange={(e) => set("loyer_num", parseInt(e.target.value) || 0)}
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Prix au m² (ex: 71 €/m²)">
-              <input value={form.price_per_sqm} onChange={(e) => set("price_per_sqm", e.target.value)} className={inputCls} />
-            </Field>
-          </Grid>
+        <Section title="Loyer">
+          <Field label="Loyer mensuel en € (ex: 7500)" hint="Affiché formaté sur le site (ex: 7 500 €)">
+            <input
+              type="number"
+              value={form.loyer_num}
+              onChange={(e) => set("loyer_num", parseInt(e.target.value) || 0)}
+              className={inputCls}
+            />
+          </Field>
         </Section>
 
         <Section title="Inclus de série">
@@ -275,13 +254,6 @@ const PropertyEdit = () => {
             onChange={(v) => set("inclus", v)}
             placeholder="Ex: Wi-Fi fibre 1 Gbps"
           />
-        </Section>
-
-        <Section title="Hôte">
-          <Grid>
-            <Field label="Nom"><input value={form.host_name} onChange={(e) => set("host_name", e.target.value)} className={inputCls} /></Field>
-            <Field label="Rôle"><input value={form.host_role} onChange={(e) => set("host_role", e.target.value)} className={inputCls} /></Field>
-          </Grid>
         </Section>
 
         <Section title="Publication">

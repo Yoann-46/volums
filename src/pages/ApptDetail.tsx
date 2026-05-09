@@ -3,6 +3,7 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Heart, Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
 import { useAppartement, useAppartements } from "@/data/queries";
+import { formatEuro } from "@/lib/format";
 
 const ApptDetail = () => {
   const { slug } = useParams();
@@ -193,11 +194,6 @@ const ApptDetail = () => {
             </ul>
           </div>
 
-          {/* Transport */}
-          <div className="mt-12 p-6 bg-cream-soft border border-hairline">
-            <span className="font-mono-meta text-slate">Transports</span>
-            <p className="mt-2 font-display text-lg">{appt.transport}</p>
-          </div>
         </div>
 
         {/* Booking sidebar */}
@@ -205,26 +201,20 @@ const ApptDetail = () => {
           <div id="booking" className="lg:sticky lg:top-8 border border-hairline bg-cream-soft p-7 md:p-8">
             <span className="font-mono-meta text-slate">À partir de</span>
             <div className="mt-2 flex items-baseline gap-3">
-              <span className="font-display text-4xl md:text-5xl">{appt.loyer}</span>
+              <span className="font-display text-4xl md:text-5xl">{formatEuro(appt.loyerNum)}</span>
               <span className="text-slate">/ mois</span>
             </div>
-            <div className="mt-1 font-mono-meta text-slate">
-              ≈ {appt.pricePerSqm} · TTC · tout inclus
-            </div>
+            <div className="mt-1 font-mono-meta text-slate">TTC · tout inclus</div>
 
-            <div className="mt-7 grid grid-cols-2 border border-hairline">
-              <Field label="Arrivée" value={appt.dispo} />
-              <Field label="Départ" value="04 AOÛT 2026" border />
+            <div className="mt-7 border border-hairline">
+              <Field label="Disponible à partir du" value={appt.dispo} />
             </div>
-            <p className="mt-3 font-mono-meta text-slate">3 mois · 2 résidents</p>
+            <p className="mt-3 font-mono-meta text-slate">Séjour minimum · {appt.minStay}</p>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <Row k={`3 mois × ${appt.loyer}`} v={`${(appt.loyerNum * 3).toLocaleString("fr-FR")} €`} />
+              <Row k="Charges & taxe de séjour" v="Inclus" />
               <Row k="Pack accueil & linge" v="Inclus" />
-              <Row k="Ménage hebdomadaire ×13" v="Inclus" />
-              <Row k="Conciergerie · taxe de séjour" v="Inclus" />
-              <div className="hairline my-3" />
-              <Row k="Total · TTC" v={`${(appt.loyerNum * 3).toLocaleString("fr-FR")} €`} bold />
+              <Row k="Ménage hebdomadaire" v="Inclus" />
             </dl>
 
             <a
@@ -233,19 +223,6 @@ const ApptDetail = () => {
             >
               Demander une visite →
             </a>
-            <button className="mt-2 w-full border border-ink py-3.5 font-mono-meta hover:bg-ink hover:text-cream transition-colors">
-              Réserver 48h · sans frais
-            </button>
-
-            <div className="mt-7 pt-6 border-t border-hairline flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-copper/30 flex items-center justify-center font-display text-copper">
-                {appt.host.name.charAt(0)}
-              </div>
-              <div>
-                <div className="font-display">{appt.host.name}</div>
-                <div className="font-mono-meta text-slate">{appt.host.role}</div>
-              </div>
-            </div>
           </div>
         </aside>
       </section>
@@ -288,7 +265,7 @@ const ApptDetail = () => {
                   </div>
                   <div className="mt-3 flex items-baseline justify-between font-mono-meta text-slate">
                     <span>{a.surface} · {a.chambres} ch.</span>
-                    <span className="text-ink">{a.loyer} / mois</span>
+                    <span className="text-ink">{formatEuro(a.loyerNum)} / mois</span>
                   </div>
                 </div>
               </Link>
