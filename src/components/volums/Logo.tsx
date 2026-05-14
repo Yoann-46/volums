@@ -29,7 +29,7 @@ export const Wordmark = ({ className = "" }: { className?: string }) => (
   <div className={`flex items-center gap-3 ${className}`}>
     <LogoMark size={28} />
     <span className="font-display text-xl tracking-tight">
-      Vol<span className="italic-display">u</span>ms
+      Volums
     </span>
   </div>
 );

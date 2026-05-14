@@ -71,7 +71,7 @@ export const Contact = () => {
           <div className="flex items-center gap-3">
             <LogoMark size={22} />
             <span className="font-display text-lg">
-              Vol<span className="italic-display">u</span>ms
+              Volums
             </span>
           </div>
           <span className="font-mono-meta text-slate">{t("contact.copyright")}</span>
