@@ -21,6 +21,14 @@ export type PropertyInput = {
   inclus: string[];
   is_published: boolean;
   sort_order: number;
+  // EN (nullable) — migration 0005
+  dispo_en?: string | null;
+  baseline_en?: string | null;
+  short_description_en?: string | null;
+  long_description_en?: string[] | null;
+  etage_en?: string | null;
+  min_stay_en?: string | null;
+  inclus_en?: string[] | null;
 };
 
 const must = () => {

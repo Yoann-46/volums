@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
-import { useAppartements } from "@/data/queries";
+import { useAppartements, pickStr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
+import { useLang } from "@/i18n/LangContext";
+import { LangToggle } from "@/i18n/LangToggle";
+import { tFormat } from "@/i18n/translations";
 import type { Appt } from "@/data/types";
 
 const numFromString = (s: string) => {
@@ -11,46 +14,58 @@ const numFromString = (s: string) => {
   return m ? parseInt(m[0]) : 0;
 };
 
-const Card = ({ a }: { a: Appt }) => (
-  <Link
-    to={`/appartements/${a.slug}`}
-    className="group bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
-  >
-    <div className="relative aspect-[4/3] overflow-hidden bg-ink/5">
-      {a.image ? (
-        <img
-          src={a.image}
-          alt={`${a.name} ${a.nameItalic}`}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
-          loading="lazy"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center font-mono-meta text-slate text-xs">
-          Photos à venir
+const Card = ({ a }: { a: Appt }) => {
+  const { lang, t } = useLang();
+  const dispo = pickStr(lang, a.dispo, a.dispoEn);
+
+  return (
+    <Link
+      to={`/appartements/${a.slug}`}
+      className="group bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-ink/5">
+        {a.image ? (
+          <img
+            src={a.image}
+            alt={`${a.name} ${a.nameItalic}`}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center font-mono-meta text-slate text-xs">
+            {t("list.card.photosSoon")}
+          </div>
+        )}
+        <div className="absolute top-0 left-0 right-0 p-3 flex items-start justify-between text-cream bg-gradient-to-b from-ink/60 to-transparent text-xs font-mono-meta">
+          <span>{t("appartements.card.ref")} · {a.ref}</span>
+          <span>{t("appartements.card.dispo")} · {dispo}</span>
         </div>
-      )}
-      <div className="absolute top-0 left-0 right-0 p-3 flex items-start justify-between text-cream bg-gradient-to-b from-ink/60 to-transparent text-xs font-mono-meta">
-        <span>Réf · {a.ref}</span>
-        <span>Dispo · {a.dispo}</span>
       </div>
-    </div>
-    <div className="p-4 md:p-5">
-      <span className="font-mono-meta text-copper text-xs">
-        {a.arrondissement} · {a.quartier}
-      </span>
-      <h3 className="font-display text-xl md:text-2xl mt-2 leading-tight">
-        {a.name} <span className="italic-display">{a.nameItalic}</span>
-      </h3>
-      <div className="mt-3 flex items-baseline justify-between font-mono-meta text-slate text-xs">
-        <span>{a.surface} · {a.chambres} ch. · {a.sdb} sdb</span>
+      <div className="p-4 md:p-5">
+        <span className="font-mono-meta text-copper text-xs">
+          {a.arrondissement} · {a.quartier}
+        </span>
+        <h3 className="font-display text-xl md:text-2xl mt-2 leading-tight">
+          {a.name} <span className="italic-display">{a.nameItalic}</span>
+        </h3>
+        <div className="mt-3 flex items-baseline justify-between font-mono-meta text-slate text-xs">
+          <span>
+            {a.surface} · {a.chambres} {t("list.card.ch")} · {a.sdb} {t("list.card.sdb")}
+          </span>
+        </div>
+        <div className="mt-3 flex items-baseline justify-between">
+          <span className="font-display text-lg">
+            {formatEuro(a.loyerNum)}
+            <span className="text-slate text-sm"> {t("list.card.perMonth")}</span>
+          </span>
+          <span className="font-mono-meta text-ink group-hover:text-copper text-xs">
+            {t("appartements.card.see")}
+          </span>
+        </div>
       </div>
-      <div className="mt-3 flex items-baseline justify-between">
-        <span className="font-display text-lg">{formatEuro(a.loyerNum)}<span className="text-slate text-sm"> /mois</span></span>
-        <span className="font-mono-meta text-ink group-hover:text-copper text-xs">Voir →</span>
-      </div>
-    </div>
-  </Link>
-);
+    </Link>
+  );
+};
 
 const Select = ({
   label,
@@ -71,7 +86,9 @@ const Select = ({
       className="w-full border border-hairline bg-cream-soft px-3 py-2.5 font-mono-meta text-sm focus:outline-none focus:border-ink"
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
       ))}
     </select>
   </label>
@@ -79,15 +96,16 @@ const Select = ({
 
 const AppartementsList = () => {
   const { data: appartements = [], isLoading } = useAppartements();
+  const { t } = useLang();
   const [quartier, setQuartier] = useState("all");
   const [chambres, setChambres] = useState("all");
   const [loyerMax, setLoyerMax] = useState("all");
   const [surfaceMin, setSurfaceMin] = useState("all");
 
   useEffect(() => {
-    document.title = "Tous les appartements — Volums";
+    document.title = t("list.title.tab");
     window.scrollTo(0, 0);
-  }, []);
+  }, [t]);
 
   const quartiers = useMemo(() => {
     const set = new Set(appartements.map((a) => a.quartier));
@@ -124,17 +142,25 @@ const AppartementsList = () => {
     <main className="min-h-screen bg-cream text-ink">
       <header className="border-b border-hairline">
         <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-5 flex items-center justify-between">
-          <Link to="/" aria-label="Volums — accueil" className="text-ink"><Wordmark /></Link>
-          <Link to="/" className="font-mono-meta text-slate hover:text-ink inline-flex items-center gap-2">
-            <ArrowLeft className="w-3.5 h-3.5" /> Accueil
+          <Link to="/" aria-label={t("nav.home")} className="text-ink">
+            <Wordmark />
           </Link>
+          <div className="flex items-center gap-6">
+            <LangToggle variant="ink" />
+            <Link
+              to="/"
+              className="font-mono-meta text-slate hover:text-ink inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> {t("list.headerBack")}
+            </Link>
+          </div>
         </div>
       </header>
 
       <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-12 md:pt-16">
-        <span className="font-mono-meta text-copper">— La sélection complète</span>
+        <span className="font-mono-meta text-copper">{t("list.eyebrow")}</span>
         <h1 className="font-display text-4xl md:text-5xl lg:text-6xl mt-4 leading-[1.05] max-w-3xl">
-          Tous nos appartements, <span className="italic-display">à filtrer.</span>
+          {t("list.title.l1")} <span className="italic-display">{t("list.title.l2")}</span>
         </h1>
       </section>
 
@@ -142,32 +168,32 @@ const AppartementsList = () => {
         <div className="border border-hairline bg-cream-soft p-5 md:p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Select
-              label="Quartier"
+              label={t("list.filter.quartier")}
               value={quartier}
               onChange={setQuartier}
               options={[
-                { value: "all", label: "Tous" },
+                { value: "all", label: t("list.filter.quartier.all") },
                 ...quartiers.map((q) => ({ value: q, label: q })),
               ]}
             />
             <Select
-              label="Chambres"
+              label={t("list.filter.chambres")}
               value={chambres}
               onChange={setChambres}
               options={[
-                { value: "all", label: "Toutes" },
+                { value: "all", label: t("list.filter.chambres.all") },
                 { value: "1", label: "1" },
                 { value: "2", label: "2" },
                 { value: "3", label: "3" },
-                { value: "4+", label: "4 et +" },
+                { value: "4+", label: t("list.filter.chambres.4plus") },
               ]}
             />
             <Select
-              label="Loyer maximum"
+              label={t("list.filter.loyer")}
               value={loyerMax}
               onChange={setLoyerMax}
               options={[
-                { value: "all", label: "Pas de max" },
+                { value: "all", label: t("list.filter.loyer.all") },
                 { value: "3000", label: "≤ 3 000 €" },
                 { value: "5000", label: "≤ 5 000 €" },
                 { value: "8000", label: "≤ 8 000 €" },
@@ -175,11 +201,11 @@ const AppartementsList = () => {
               ]}
             />
             <Select
-              label="Surface minimum"
+              label={t("list.filter.surface")}
               value={surfaceMin}
               onChange={setSurfaceMin}
               options={[
-                { value: "all", label: "Pas de min" },
+                { value: "all", label: t("list.filter.surface.all") },
                 { value: "40", label: "≥ 40 m²" },
                 { value: "60", label: "≥ 60 m²" },
                 { value: "90", label: "≥ 90 m²" },
@@ -189,12 +215,15 @@ const AppartementsList = () => {
           </div>
           <div className="mt-4 flex items-center justify-between font-mono-meta text-xs">
             <span className="text-slate">
-              {filtered.length} appartement{filtered.length > 1 ? "s" : ""}
-              {hasFilters && ` (sur ${appartements.length})`}
+              {tFormat(
+                filtered.length > 1 ? t("list.results.many") : t("list.results.one"),
+                { n: filtered.length },
+              )}
+              {hasFilters && ` ${tFormat(t("list.results.outOf"), { total: appartements.length })}`}
             </span>
             {hasFilters && (
               <button onClick={reset} className="text-copper hover:text-ink">
-                Réinitialiser les filtres
+                {t("list.results.reset")}
               </button>
             )}
           </div>
@@ -210,17 +239,19 @@ const AppartementsList = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div className="border border-hairline bg-cream-soft p-12 text-center">
-            <p className="font-display text-xl">Aucun appartement ne correspond à ces critères.</p>
+            <p className="font-display text-xl">{t("list.empty")}</p>
             <button
               onClick={reset}
               className="mt-6 inline-flex items-center gap-2 bg-ink text-cream px-5 py-3 font-mono-meta hover:bg-copper transition-colors"
             >
-              Réinitialiser
+              {t("list.empty.reset")}
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((a) => <Card key={a.slug} a={a} />)}
+            {filtered.map((a) => (
+              <Card key={a.slug} a={a} />
+            ))}
           </div>
         )}
       </section>

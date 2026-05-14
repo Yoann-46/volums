@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { Wordmark } from "./Logo";
-
-const links = [
-  { label: "Pourquoi", href: "#pourquoi" },
-  { label: "Appartements", href: "#appartements" },
-  { label: "Pour qui", href: "#pour-qui" },
-  { label: "Promesse", href: "#promesse" },
-  { label: "Contact", href: "#contact" },
-];
+import { useLang } from "@/i18n/LangContext";
+import { LangToggle } from "@/i18n/LangToggle";
 
 export const Nav = () => {
   const [open, setOpen] = useState(false);
+  const { t } = useLang();
+
+  const links = [
+    { label: t("nav.pourquoi"), href: "#pourquoi" },
+    { label: t("nav.appartements"), href: "#appartements" },
+    { label: t("nav.pourQui"), href: "#pour-qui" },
+    { label: t("nav.promesse"), href: "#promesse" },
+    { label: t("nav.contact"), href: "#contact" },
+  ];
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -23,7 +26,7 @@ export const Nav = () => {
   return (
     <header className="absolute top-0 left-0 right-0 z-30">
       <div className="mx-auto max-w-[1440px] px-6 md:px-12 py-5 md:py-6 flex items-center justify-between text-cream">
-        <a href="#" aria-label="Volums — accueil">
+        <a href="#" aria-label={t("nav.home")}>
           <Wordmark />
         </a>
         <nav className="hidden md:flex items-center gap-10">
@@ -37,21 +40,27 @@ export const Nav = () => {
             </a>
           ))}
         </nav>
-        <a
-          href="#contact"
-          className="hidden md:inline-flex items-center gap-2 border border-cream/40 px-5 py-2.5 font-mono-meta text-cream hover:bg-cream hover:text-ink transition-colors"
-        >
-          Nous écrire
-        </a>
+        <div className="hidden md:flex items-center gap-6">
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-2 border border-cream/40 px-5 py-2.5 font-mono-meta text-cream hover:bg-cream hover:text-ink transition-colors"
+          >
+            {t("nav.contactCta")}
+          </a>
+          <LangToggle variant="cream" />
+        </div>
 
-        {/* Mobile burger */}
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Ouvrir le menu"
-          className="md:hidden w-10 h-10 flex items-center justify-center border border-cream/30"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+        {/* Mobile right-side: lang + burger */}
+        <div className="md:hidden flex items-center gap-3">
+          <LangToggle variant="cream" />
+          <button
+            onClick={() => setOpen(true)}
+            aria-label={t("nav.openMenu")}
+            className="w-10 h-10 flex items-center justify-center border border-cream/30"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile drawer */}
@@ -59,13 +68,16 @@ export const Nav = () => {
         <div className="fixed inset-0 z-50 bg-ink text-cream md:hidden flex flex-col">
           <div className="flex items-center justify-between px-6 py-5">
             <Wordmark />
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Fermer le menu"
-              className="w-10 h-10 flex items-center justify-center border border-cream/30"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              <LangToggle variant="cream" />
+              <button
+                onClick={() => setOpen(false)}
+                aria-label={t("nav.closeMenu")}
+                className="w-10 h-10 flex items-center justify-center border border-cream/30"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
           <nav className="flex-1 flex flex-col px-6 pt-6 gap-1">
             {links.map((l) => (
@@ -85,7 +97,7 @@ export const Nav = () => {
               onClick={() => setOpen(false)}
               className="block text-center bg-cream text-ink py-4 font-mono-meta"
             >
-              Nous écrire
+              {t("nav.contactCta")}
             </a>
           </div>
         </div>

@@ -26,6 +26,14 @@ type PropertyRow = {
   cover_photo_id: string | null;
   is_published: boolean;
   sort_order: number;
+  // EN (nullable — migration 0005)
+  dispo_en?: string | null;
+  baseline_en?: string | null;
+  short_description_en?: string | null;
+  long_description_en?: string[] | null;
+  etage_en?: string | null;
+  min_stay_en?: string | null;
+  inclus_en?: string[] | null;
 };
 
 type PhotoRow = {
@@ -74,6 +82,13 @@ const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
     image: cover ? photoUrl(cover.storage_path) : "",
     gallery,
     inclus: p.inclus,
+    dispoEn: p.dispo_en ?? null,
+    baselineEn: p.baseline_en ?? null,
+    shortDescriptionEn: p.short_description_en ?? null,
+    longDescriptionEn: p.long_description_en ?? null,
+    etageEn: p.etage_en ?? null,
+    minStayEn: p.min_stay_en ?? null,
+    inclusEn: p.inclus_en ?? null,
     isPublished: p.is_published,
     sortOrder: p.sort_order,
   };
@@ -124,3 +139,18 @@ export const useAppartement = (slug: string | undefined) =>
     },
     enabled: Boolean(slug),
   });
+
+// Helpers — pick a localized field with FR fallback
+export const pickStr = (lang: "fr" | "en", fr: string, en: string | null | undefined): string => {
+  if (lang === "en" && en && en.trim() !== "") return en;
+  return fr;
+};
+
+export const pickArr = (
+  lang: "fr" | "en",
+  fr: string[],
+  en: string[] | null | undefined,
+): string[] => {
+  if (lang === "en" && en && en.length > 0) return en;
+  return fr;
+};

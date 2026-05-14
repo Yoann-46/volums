@@ -31,6 +31,13 @@ const empty: PropertyInput = {
   inclus: [""],
   is_published: true,
   sort_order: 0,
+  dispo_en: "",
+  baseline_en: "",
+  short_description_en: "",
+  long_description_en: [""],
+  etage_en: "",
+  min_stay_en: "",
+  inclus_en: [""],
 };
 
 const slugify = (s: string) =>
@@ -78,6 +85,13 @@ const PropertyEdit = () => {
         inclus: existing.inclus,
         is_published: existing.is_published,
         sort_order: existing.sort_order,
+        dispo_en: existing.dispo_en ?? "",
+        baseline_en: existing.baseline_en ?? "",
+        short_description_en: existing.short_description_en ?? "",
+        long_description_en: existing.long_description_en ?? [""],
+        etage_en: existing.etage_en ?? "",
+        min_stay_en: existing.min_stay_en ?? "",
+        inclus_en: existing.inclus_en ?? [""],
       });
     }
   }, [existing]);
@@ -94,6 +108,8 @@ const PropertyEdit = () => {
         slug: form.slug || slugify(`${form.name}-${form.name_italic}`),
         long_description: form.long_description.filter((s) => s.trim()),
         inclus: form.inclus.filter((s) => s.trim()),
+        long_description_en: (form.long_description_en ?? []).filter((s) => s.trim()),
+        inclus_en: (form.inclus_en ?? []).filter((s) => s.trim()),
       };
       if (isNew) {
         const created = await createProperty(payload);
@@ -254,6 +270,60 @@ const PropertyEdit = () => {
             onChange={(v) => set("inclus", v)}
             placeholder="Ex: Wi-Fi fibre 1 Gbps"
           />
+        </Section>
+
+        <Section title="🇬🇧 Traductions EN (optionnel — fallback FR si vide)">
+          <Field label="Disponibilité (EN) — ex: MAY 04, 2026">
+            <input
+              value={form.dispo_en ?? ""}
+              onChange={(e) => set("dispo_en", e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Étage (EN) — ex: 3rd floor">
+            <input
+              value={form.etage_en ?? ""}
+              onChange={(e) => set("etage_en", e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Séjour minimum (EN) — ex: 1 month minimum">
+            <input
+              value={form.min_stay_en ?? ""}
+              onChange={(e) => set("min_stay_en", e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Baseline (EN)">
+            <input
+              value={form.baseline_en ?? ""}
+              onChange={(e) => set("baseline_en", e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Description courte (EN)">
+            <textarea
+              value={form.short_description_en ?? ""}
+              onChange={(e) => set("short_description_en", e.target.value)}
+              rows={2}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Description longue (EN) — paragraphes">
+            <ArrayEditor
+              value={form.long_description_en ?? [""]}
+              onChange={(v) => set("long_description_en", v)}
+              placeholder="Paragraph…"
+              multiline
+            />
+          </Field>
+          <Field label="Inclus de série (EN)">
+            <ArrayEditor
+              value={form.inclus_en ?? [""]}
+              onChange={(v) => set("inclus_en", v)}
+              placeholder="Ex: 1 Gbps fibre Wi-Fi"
+            />
+          </Field>
         </Section>
 
         <Section title="Publication">

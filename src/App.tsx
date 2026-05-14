@@ -13,6 +13,7 @@ import { AdminLayout } from "./admin/AdminLayout";
 import Login from "./admin/pages/Login";
 import PropertyList from "./admin/pages/PropertyList";
 import PropertyEdit from "./admin/pages/PropertyEdit";
+import { LangProvider } from "./i18n/LangContext";
 
 const queryClient = new QueryClient();
 
@@ -22,30 +23,32 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/appartements" element={<AppartementsList />} />
-            <Route path="/appartements/:slug" element={<ApptDetail />} />
+        <LangProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/appartements" element={<AppartementsList />} />
+              <Route path="/appartements/:slug" element={<ApptDetail />} />
 
-            <Route path="/admin/login" element={<Login />} />
-            <Route
-              path="/admin"
-              element={
-                <RequireAuth>
-                  <AdminLayout />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<PropertyList />} />
-              <Route path="properties" element={<PropertyList />} />
-              <Route path="properties/new" element={<PropertyEdit />} />
-              <Route path="properties/:id" element={<PropertyEdit />} />
-            </Route>
+              <Route path="/admin/login" element={<Login />} />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <AdminLayout />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<PropertyList />} />
+                <Route path="properties" element={<PropertyList />} />
+                <Route path="properties/new" element={<PropertyEdit />} />
+                <Route path="properties/:id" element={<PropertyEdit />} />
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </LangProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

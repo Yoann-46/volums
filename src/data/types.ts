@@ -28,6 +28,14 @@ export type Appt = {
   image: string;
   gallery: Photo[];
   inclus: string[];
+  // Versions EN (nullable) — fallback FR si absent.
+  dispoEn?: string | null;
+  baselineEn?: string | null;
+  shortDescriptionEn?: string | null;
+  longDescriptionEn?: string[] | null;
+  etageEn?: string | null;
+  minStayEn?: string | null;
+  inclusEn?: string[] | null;
   isPublished?: boolean;
   sortOrder?: number;
 };
