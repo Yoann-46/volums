@@ -140,8 +140,8 @@ const AppartementsList = () => {
 
   return (
     <main className="min-h-screen bg-cream text-ink">
-      <header className="border-b border-hairline">
-        <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-5 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-cream/85 backdrop-blur-md border-b border-hairline">
+        <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-4 flex items-center justify-between">
           <Link to="/" aria-label={t("nav.home")} className="text-ink">
             <Wordmark />
           </Link>
