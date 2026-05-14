@@ -25,7 +25,7 @@ export const Nav = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-ink/70 backdrop-blur-md border-b border-cream/10">
-      <div className="mx-auto max-w-[1440px] px-6 md:px-12 py-4 md:py-5 flex items-center justify-between text-cream">
+      <div className="mx-auto max-w-[1440px] px-6 md:px-12 py-4 flex items-center justify-between text-cream">
         <a href="#" aria-label={t("nav.home")}>
           <Wordmark />
         </a>
