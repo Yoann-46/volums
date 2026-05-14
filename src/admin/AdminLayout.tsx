@@ -13,6 +13,15 @@ export const AdminLayout = () => {
           <Link to="/" className="text-ink"><Wordmark /></Link>
           <nav className="flex items-center gap-6 font-mono-meta text-sm">
             <NavLink
+              to="/admin"
+              end
+              className={({ isActive }) =>
+                isActive ? "text-ink" : "text-slate hover:text-ink"
+              }
+            >
+              Tableau de bord
+            </NavLink>
+            <NavLink
               to="/admin/properties"
               className={({ isActive }) =>
                 isActive ? "text-ink" : "text-slate hover:text-ink"

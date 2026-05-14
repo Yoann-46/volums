@@ -13,6 +13,7 @@ import { AdminLayout } from "./admin/AdminLayout";
 import Login from "./admin/pages/Login";
 import PropertyList from "./admin/pages/PropertyList";
 import PropertyEdit from "./admin/pages/PropertyEdit";
+import Dashboard from "./admin/pages/Dashboard";
 import { LangProvider } from "./i18n/LangContext";
 
 const queryClient = new QueryClient();
@@ -39,7 +40,7 @@ const App = () => (
                   </RequireAuth>
                 }
               >
-                <Route index element={<PropertyList />} />
+                <Route index element={<Dashboard />} />
                 <Route path="properties" element={<PropertyList />} />
                 <Route path="properties/new" element={<PropertyEdit />} />
                 <Route path="properties/:id" element={<PropertyEdit />} />
