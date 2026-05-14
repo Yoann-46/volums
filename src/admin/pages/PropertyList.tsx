@@ -1,16 +1,27 @@
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Search, X } from "lucide-react";
 import { listProperties, deleteProperty, updateProperty } from "../api";
 import { formatEuro } from "@/lib/format";
 import { toast } from "sonner";
 
+/** Normalise une ref : retire espaces + passe en minuscules pour comparaison souple. */
+const normalizeRef = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+
 const PropertyList = () => {
   const qc = useQueryClient();
+  const [search, setSearch] = useState("");
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["admin-properties"],
     queryFn: listProperties,
   });
+
+  const filtered = useMemo(() => {
+    const q = normalizeRef(search);
+    if (!q) return items;
+    return items.filter((p) => normalizeRef(p.ref ?? "").includes(q));
+  }, [items, search]);
 
   const onDelete = async (id: string, name: string) => {
     if (!confirm(`Supprimer "${name}" ? Cette action est définitive.`)) return;
@@ -46,11 +57,43 @@ const PropertyList = () => {
         </Link>
       </div>
 
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher par référence (ex: 4 BEAUMAR ES)"
+            className="w-full border border-hairline bg-cream-soft pl-9 pr-9 h-10 font-mono-meta text-sm focus:outline-none focus:border-ink"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Effacer la recherche"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-slate hover:text-ink"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <span className="font-mono-meta text-xs text-slate">
+          {search
+            ? `${filtered.length} résultat${filtered.length > 1 ? "s" : ""} sur ${items.length}`
+            : `${items.length} appartement${items.length > 1 ? "s" : ""}`}
+        </span>
+      </div>
+
       {isLoading ? (
         <div className="font-mono-meta text-slate">Chargement…</div>
       ) : items.length === 0 ? (
         <div className="border border-hairline bg-cream-soft p-8 text-center text-slate">
           Aucun appartement. Crée le premier.
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="border border-hairline bg-cream-soft p-8 text-center text-slate">
+          Aucune référence ne correspond à "{search}".
         </div>
       ) : (
         <div className="border border-hairline bg-cream-soft">
@@ -61,7 +104,7 @@ const PropertyList = () => {
             <span className="col-span-2">Loyer</span>
             <span className="col-span-2 text-right">Actions</span>
           </div>
-          {items.map((p) => (
+          {filtered.map((p) => (
             <div
               key={p.id}
               className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-5 py-4 border-b border-hairline last:border-b-0 items-center"
