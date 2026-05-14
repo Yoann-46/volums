@@ -6,7 +6,7 @@ export const Contact = () => {
   const { t } = useLang();
   const fields = [
     { label: t("contact.email"), value: "hello@volums.fr", href: "mailto:hello@volums.fr" },
-    { label: t("contact.phone"), value: "+33 6 XX XX XX XX", href: "tel:+33600000000" },
+    { label: t("contact.phone"), value: "+33 6 35 34 79 90", href: "tel:+33635347990" },
     { label: t("contact.office"), value: t("contact.officeValue") },
     { label: t("contact.web"), value: "www.volums.fr" },
   ];

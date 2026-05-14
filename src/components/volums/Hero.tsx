@@ -33,10 +33,6 @@ export const Hero = () => {
               </a>
             </div>
           </div>
-          <div className="hidden lg:flex items-end justify-between mt-16 pt-8 border-t border-cream/15">
-            <span className="font-mono-meta text-copper">{t("hero.metaLeft")}</span>
-            <span className="font-mono-meta text-cream/50">{t("hero.metaRight")}</span>
-          </div>
         </div>
 
         {/* Right — image */}
