@@ -10,6 +10,7 @@ import {
   uploadPhoto,
 } from "../api";
 import { photoUrl } from "@/lib/supabase";
+import { compressImage, formatBytes } from "../lib/compressImage";
 
 export const PhotoManager = ({
   propertyId,
@@ -21,6 +22,11 @@ export const PhotoManager = ({
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+    savedBytes: number;
+  } | null>(null);
 
   const { data: photos = [] } = useQuery({
     queryKey: ["admin-photos", propertyId],
@@ -36,21 +42,34 @@ export const PhotoManager = ({
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploading(true);
+    const list = Array.from(files);
+    setProgress({ current: 0, total: list.length, savedBytes: 0 });
+    let savedBytes = 0;
     try {
       const start = photos.length;
       let i = 0;
-      for (const f of Array.from(files)) {
+      for (const f of list) {
+        setProgress({ current: i + 1, total: list.length, savedBytes });
+        // Compression côté navigateur AVANT upload (max 2000 px, JPEG q=0.82).
+        const { file, originalSize, finalSize } = await compressImage(f);
+        savedBytes += Math.max(0, originalSize - finalSize);
         const order = start + i;
         const label = String(order + 1).padStart(2, "0");
-        await uploadPhoto(propertyId, f, { label, caption: "", sort_order: order });
+        await uploadPhoto(propertyId, file, { label, caption: "", sort_order: order });
         i++;
+        setProgress({ current: i, total: list.length, savedBytes });
       }
-      toast.success(`${files.length} photo(s) uploadée(s)`);
+      toast.success(
+        savedBytes > 0
+          ? `${list.length} photo(s) — ${formatBytes(savedBytes)} économisés`
+          : `${list.length} photo(s) uploadée(s)`,
+      );
       refresh();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
     } finally {
       setUploading(false);
+      setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -123,12 +142,23 @@ export const PhotoManager = ({
           disabled={uploading}
           className="inline-flex items-center gap-2 bg-ink text-cream px-4 h-10 font-mono-meta text-sm hover:bg-copper transition-colors disabled:opacity-50"
         >
-          <Upload className="w-4 h-4" /> {uploading ? "Upload…" : "Ajouter des photos"}
+          <Upload className="w-4 h-4" />{" "}
+          {uploading
+            ? progress
+              ? `Compression & upload ${progress.current}/${progress.total}…`
+              : "Upload…"
+            : "Ajouter des photos"}
         </button>
         <span className="font-mono-meta text-xs text-slate">
           {photos.length} photo{photos.length > 1 ? "s" : ""}
         </span>
       </div>
+      {!uploading && (
+        <p className="font-mono-meta text-xs text-slate/70">
+          Les photos sont automatiquement redimensionnées (max 2000 px) et compressées (JPEG)
+          avant l'envoi.
+        </p>
+      )}
 
       {photos.length === 0 ? (
         <p className="text-slate text-sm">Aucune photo. Upload tes premières photos.</p>
