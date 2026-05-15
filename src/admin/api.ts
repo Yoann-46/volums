@@ -46,6 +46,74 @@ export const listProperties = async () => {
   return data ?? [];
 };
 
+/**
+ * Liste les properties + résout la `storage_path` de la photo de couverture.
+ * Si `cover_photo_id` est défini, on l'utilise. Sinon, fallback sur la première photo (sort_order le plus bas).
+ * Si aucune photo n'existe pour la property → `cover_storage_path: null`.
+ */
+export const listPropertiesWithCover = async () => {
+  const sb = must();
+  const { data: props, error } = await sb
+    .from("properties")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  if (!props || props.length === 0) return [];
+
+  const propIds = (props as Array<{ id: string }>).map((p) => p.id);
+  const { data: photos, error: phErr } = await sb
+    .from("property_photos")
+    .select("id, property_id, storage_path, sort_order")
+    .in("property_id", propIds)
+    .order("sort_order", { ascending: true });
+  if (phErr) throw phErr;
+
+  const photosById = new Map<string, string>();
+  const firstByProperty = new Map<string, string>();
+  for (const ph of (photos ?? []) as Array<{
+    id: string;
+    property_id: string;
+    storage_path: string;
+  }>) {
+    photosById.set(ph.id, ph.storage_path);
+    if (!firstByProperty.has(ph.property_id)) {
+      firstByProperty.set(ph.property_id, ph.storage_path);
+    }
+  }
+
+  return (props as Array<Record<string, unknown> & { id: string; cover_photo_id: string | null }>).map(
+    (p) => ({
+      ...p,
+      cover_storage_path:
+        (p.cover_photo_id && photosById.get(p.cover_photo_id)) ??
+        firstByProperty.get(p.id) ??
+        null,
+    }),
+  );
+};
+
+/**
+ * Met à jour le sort_order de plusieurs properties d'un coup.
+ * Reçoit un tableau `[{ id, sort_order }]`. Fait les updates en parallèle.
+ */
+export const reorderProperties = async (
+  items: Array<{ id: string; sort_order: number }>,
+) => {
+  const sb = must();
+  // Update en parallèle — Supabase n'a pas de batch update natif via le client JS.
+  await Promise.all(
+    items.map(({ id, sort_order }) =>
+      sb
+        .from("properties")
+        .update({ sort_order })
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) throw error;
+        }),
+    ),
+  );
+};
+
 export const getProperty = async (id: string) => {
   const sb = must();
   const { data, error } = await sb.from("properties").select("*").eq("id", id).single();
