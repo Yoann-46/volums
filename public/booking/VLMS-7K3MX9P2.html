@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Booking Confirmation — Appt Beaumarchais · Volums</title>
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #F5F0EA;
+      --cream-dark: #EDE7DE;
+      --charcoal: #1C1C1A;
+      --charcoal-light: #3A3A38;
+      --rust: #C05A3A;
+      --muted: #8A8680;
+      --border: #DDD7CE;
+      --white: #FFFFFF;
+    }
+
+    body {
+      background: var(--cream);
+      color: var(--charcoal);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--charcoal);
+      padding: 22px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .header-brand svg {
+      color: var(--cream);
+    }
+
+    .header-brand-name {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      color: var(--cream);
+      text-transform: uppercase;
+    }
+
+    .header-tag {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── CONFIRMATION BANNER ── */
+    .confirm-banner {
+      background: var(--cream-dark);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 48px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .confirm-check {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--charcoal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .confirm-check svg {
+      color: var(--cream);
+    }
+
+    .confirm-text-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 4px;
+    }
+
+    .confirm-text-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--charcoal);
+    }
+
+    .confirm-text-title em {
+      font-style: italic;
+    }
+
+    .confirm-ref {
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .confirm-ref-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .confirm-ref-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--rust);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 52px 24px 80px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--rust);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .section-label::before {
+      content: '—';
+      opacity: 0.6;
+    }
+
+    /* ── GUEST BLOCK ── */
+    .guest-block {
+      margin-bottom: 40px;
+    }
+
+    .guest-greeting {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 42px;
+      font-weight: 300;
+      line-height: 1.15;
+      color: var(--charcoal);
+      margin-bottom: 10px;
+    }
+
+    .guest-greeting em {
+      font-style: italic;
+    }
+
+    .guest-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--charcoal-light);
+      line-height: 1.7;
+    }
+
+    /* ── DATES STRIP ── */
+    .dates-strip {
+      display: flex;
+      align-items: center;
+      background: var(--charcoal);
+      padding: 28px 36px;
+      margin-bottom: 40px;
+    }
+
+    .date-block {
+      flex: 1;
+    }
+
+    .date-block.right {
+      text-align: right;
+    }
+
+    .date-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .date-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 300;
+      color: var(--cream);
+    }
+
+    .date-value em {
+      font-style: italic;
+    }
+
+    .dates-divider {
+      width: 1px;
+      height: 48px;
+      background: rgba(255,255,255,0.12);
+      flex-shrink: 0;
+    }
+
+    .nights-block {
+      text-align: center;
+      padding: 0 36px;
+      flex-shrink: 0;
+    }
+
+    .nights-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 38px;
+      font-weight: 300;
+      color: var(--cream);
+      display: block;
+      line-height: 1;
+    }
+
+    .nights-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* ── PROPERTY CARD ── */
+    .property-card {
+      border: 1px solid var(--border);
+      margin-bottom: 40px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .property-photos {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 3px;
+      height: 220px;
+      flex-shrink: 0;
+    }
+
+    .property-photos img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .property-info {
+      background: var(--white);
+      padding: 28px 32px;
+      position: relative;
+    }
+
+    .property-location {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 8px;
+    }
+
+    .property-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 300;
+      color: var(--charcoal);
+      margin-bottom: 6px;
+    }
+
+    .property-name em { font-style: italic; }
+
+    .property-tagline {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      font-style: italic;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .property-specs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+
+    .spec-item {
+      padding-right: 20px;
+    }
+
+    .spec-item + .spec-item {
+      padding-left: 20px;
+      border-left: 1px solid var(--border);
+    }
+
+    .spec-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .spec-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--charcoal);
+    }
+
+    /* ── INCLUSIONS ── */
+    .inclusions {
+      margin-bottom: 40px;
+    }
+
+    .inclusions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .inclusion-item {
+      background: var(--cream-dark);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .inclusion-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--charcoal);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--cream);
+      font-size: 13px;
+    }
+
+    .inclusion-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--charcoal);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── PRICE SUMMARY ── */
+    .price-summary {
+      background: var(--cream-dark);
+      border: 1px solid var(--border);
+      padding: 32px 36px;
+      margin-bottom: 40px;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .price-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .price-row-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--charcoal-light);
+      letter-spacing: 0.04em;
+    }
+
+    .price-row-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--charcoal);
+    }
+
+    .price-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-top: 20px;
+      margin-top: 8px;
+      border-top: 2px solid var(--charcoal);
+    }
+
+    .price-total-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+    }
+
+    .price-total-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 38px;
+      font-weight: 300;
+      color: var(--charcoal);
+    }
+
+    .price-total-note {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+
+    /* ── CONTACT BLOCK ── */
+    .contact-block {
+      background: var(--charcoal);
+      padding: 32px 36px;
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .contact-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--cream);
+      margin-bottom: 6px;
+    }
+
+    .contact-title em { font-style: italic; }
+
+    .contact-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--muted);
+    }
+
+    .contact-email {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--cream);
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .footer-brand-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+    }
+
+    .footer-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.6;
+    }
+
+    .footer-text a {
+      color: var(--rust);
+      text-decoration: none;
+    }
+
+    @media print {
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <a href="https://www.volums.fr" class="header-brand">
+      <svg viewBox="0 0 48 48" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <rect x="1" y="1" width="46" height="46"></rect>
+        <path d="M14 38 V24 A10 10 0 0 1 34 24 V38" stroke-linecap="square"></path>
+        <line x1="24" y1="14" x2="24" y2="38" stroke-width="1.1" opacity="0.55"></line>
+        <line x1="10" y1="38" x2="38" y2="38"></line>
+      </svg>
+      <span class="header-brand-name">Volums</span>
+    </a>
+    <span class="header-tag">Booking Confirmation</span>
+  </header>
+
+  <!-- CONFIRMATION BANNER -->
+  <div class="confirm-banner">
+    <div class="confirm-check">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div>
+      <div class="confirm-text-label">Confirmed</div>
+      <div class="confirm-text-title">Your reservation is <em>confirmed.</em></div>
+    </div>
+    <div class="confirm-ref">
+      <div class="confirm-ref-label">Booking ID</div>
+      <div class="confirm-ref-value">VLMS-7K3MX9P2</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- GUEST GREETING -->
+    <div class="guest-block">
+      <div class="section-label">The Guest</div>
+      <h1 class="guest-greeting">Welcome, <em>Jack</em></h1>
+      <p class="guest-sub">
+        We are pleased to confirm your upcoming stay in Paris with Volums.<br />
+        Below is a full summary of your reservation at Appt Beaumarchais.
+      </p>
+    </div>
+
+    <!-- DATES STRIP -->
+    <div class="dates-strip">
+      <div class="date-block">
+        <div class="date-label">Check-in</div>
+        <div class="date-value">May <em>22,</em> 2026</div>
+      </div>
+      <div class="dates-divider"></div>
+      <div class="nights-block">
+        <span class="nights-value">31</span>
+        <span class="nights-label">Nights</span>
+      </div>
+      <div class="dates-divider"></div>
+      <div class="date-block right">
+        <div class="date-label">Check-out</div>
+        <div class="date-value">June <em>22,</em> 2026</div>
+      </div>
+    </div>
+
+    <!-- PROPERTY CARD -->
+    <div class="property-card">
+      <div class="property-photos">
+        <img
+          src="https://uqsvfqpbbgfxdilyaang.supabase.co/storage/v1/object/public/property-photos/7ebee8a6-f4dc-4f4a-adda-11cc79ea71b4/4dd55afd-def4-4eba-9032-9f3f62736ea1.jpg"
+          alt="Appt Beaumarchais — view"
+        />
+        <img
+          src="https://uqsvfqpbbgfxdilyaang.supabase.co/storage/v1/object/public/property-photos/7ebee8a6-f4dc-4f4a-adda-11cc79ea71b4/f81c364f-3943-41c8-8e99-ebee75debbb0.jpg"
+          alt="Appt Beaumarchais — bedroom"
+        />
+        <img
+          src="https://uqsvfqpbbgfxdilyaang.supabase.co/storage/v1/object/public/property-photos/7ebee8a6-f4dc-4f4a-adda-11cc79ea71b4/4b90d142-23ce-4024-b663-6b25d9746dfd.jpg"
+          alt="Appt Beaumarchais — detail"
+        />
+      </div>
+      <div class="property-info">
+        <div class="property-location">Boulevard Beaumarchais · Paris 11ᵉ · Ref. 4 BEAUMAR 1</div>
+        <div class="property-name">Appt <em>Beaumarchais</em></div>
+        <div class="property-tagline">Haussmann, reimagined.</div>
+        <div class="property-specs">
+          <div class="spec-item">
+            <div class="spec-label">Surface</div>
+            <div class="spec-value">105 m²</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Bedrooms</div>
+            <div class="spec-value">3</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Bathrooms</div>
+            <div class="spec-value">2</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Floor</div>
+            <div class="spec-value">1ˢᵗ · Lift</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INCLUSIONS -->
+    <div class="inclusions">
+      <div class="section-label">Always Included</div>
+      <div class="inclusions-grid">
+        <div class="inclusion-item">
+          <div class="inclusion-icon">✦</div>
+          <span class="inclusion-text">Utilities &amp; Tourist Tax</span>
+        </div>
+        <div class="inclusion-item">
+          <div class="inclusion-icon">✦</div>
+          <span class="inclusion-text">High-Speed Wi-Fi</span>
+        </div>
+        <div class="inclusion-item">
+          <div class="inclusion-icon">✦</div>
+          <span class="inclusion-text">Fully Equipped Kitchen</span>
+        </div>
+        <div class="inclusion-item">
+          <div class="inclusion-icon">✦</div>
+          <span class="inclusion-text">Concierge Service</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICE SUMMARY -->
+    <div class="price-summary">
+      <div class="section-label">Price Summary</div>
+      <div class="price-row">
+        <span class="price-row-label">Appt Beaumarchais · 31 nights</span>
+        <span class="price-row-value">7 200 €</span>
+      </div>
+      <div class="price-row">
+        <span class="price-row-label">Utilities &amp; Tourist Tax</span>
+        <span class="price-row-value">Included</span>
+      </div>
+
+      <div class="price-total">
+        <span class="price-total-label">Total Due</span>
+        <div>
+          <span class="price-total-value">7 200 €</span>
+          <span class="price-total-note">Tax Incl. · All-Inclusive</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="contact-block">
+      <div class="contact-text">
+        <div class="contact-title">Any <em>questions?</em></div>
+        <div class="contact-sub">Our team is available to assist you throughout your stay.</div>
+      </div>
+      <a href="mailto:hello@volums.fr" class="contact-email">hello@volums.fr</a>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-brand">
+        <svg viewBox="0 0 48 48" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="color: var(--charcoal)">
+          <rect x="1" y="1" width="46" height="46"></rect>
+          <path d="M14 38 V24 A10 10 0 0 1 34 24 V38" stroke-linecap="square"></path>
+          <line x1="24" y1="14" x2="24" y2="38" stroke-width="1.1" opacity="0.55"></line>
+          <line x1="10" y1="38" x2="38" y2="38"></line>
+        </svg>
+        <span class="footer-brand-name">Volums</span>
+      </div>
+      <div class="footer-text">
+        Booking ref. VLMS-7K3MX9P2 · Confirmed May 2026<br />
+        <a href="https://www.volums.fr">www.volums.fr</a>
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>
