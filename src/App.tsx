@@ -14,6 +14,9 @@ import Login from "./admin/pages/Login";
 import PropertyList from "./admin/pages/PropertyList";
 import PropertyEdit from "./admin/pages/PropertyEdit";
 import Dashboard from "./admin/pages/Dashboard";
+import BookingsList from "./admin/pages/BookingsList";
+import BookingEdit from "./admin/pages/BookingEdit";
+import BookingConfirmation from "./pages/BookingConfirmation";
 import { LangProvider } from "./i18n/LangContext";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/appartements" element={<AppartementsList />} />
               <Route path="/appartements/:slug" element={<ApptDetail />} />
+              <Route path="/booking/:bookingId" element={<BookingConfirmation />} />
 
               <Route path="/admin/login" element={<Login />} />
               <Route
@@ -44,6 +48,9 @@ const App = () => (
                 <Route path="properties" element={<PropertyList />} />
                 <Route path="properties/new" element={<PropertyEdit />} />
                 <Route path="properties/:id" element={<PropertyEdit />} />
+                <Route path="bookings" element={<BookingsList />} />
+                <Route path="bookings/new" element={<BookingEdit />} />
+                <Route path="bookings/:id" element={<BookingEdit />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

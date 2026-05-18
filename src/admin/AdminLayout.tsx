@@ -29,6 +29,14 @@ export const AdminLayout = () => {
             >
               Appartements
             </NavLink>
+            <NavLink
+              to="/admin/bookings"
+              className={({ isActive }) =>
+                isActive ? "text-ink" : "text-slate hover:text-ink"
+              }
+            >
+              Réservations
+            </NavLink>
             <button
               onClick={async () => {
                 await signOut();

@@ -92,6 +92,66 @@ export const listPropertiesWithCover = async () => {
   );
 };
 
+// ─────────────────────────── BOOKINGS ───────────────────────────
+
+export type BookingInput = {
+  booking_id: string;
+  property_id: string;
+  guest_name: string;
+  check_in: string;   // YYYY-MM-DD
+  check_out: string;  // YYYY-MM-DD
+  total_amount: number | null;
+  notes?: string | null;
+};
+
+export type BookingRow = BookingInput & {
+  id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const listBookings = async () => {
+  const sb = must();
+  const { data, error } = await sb
+    .from("bookings")
+    .select("*, property:properties(id, name, name_italic, ref, slug, quartier, arrondissement)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+};
+
+export const getBookingById = async (id: string) => {
+  const sb = must();
+  const { data, error } = await sb.from("bookings").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data as BookingRow;
+};
+
+export const createBooking = async (input: BookingInput) => {
+  const sb = must();
+  const { data, error } = await sb.from("bookings").insert(input).select().single();
+  if (error) throw error;
+  return data as BookingRow;
+};
+
+export const updateBooking = async (id: string, input: Partial<BookingInput>) => {
+  const sb = must();
+  const { data, error } = await sb
+    .from("bookings")
+    .update(input)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as BookingRow;
+};
+
+export const deleteBooking = async (id: string) => {
+  const sb = must();
+  const { error } = await sb.from("bookings").delete().eq("id", id);
+  if (error) throw error;
+};
+
 /**
  * Met à jour le sort_order de plusieurs properties d'un coup.
  * Reçoit un tableau `[{ id, sort_order }]`. Fait les updates en parallèle.
