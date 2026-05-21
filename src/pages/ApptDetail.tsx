@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, X, Heart, Share2, ArrowLeft } from "lucide-react";
+import { Heart, Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
+import { RoomGallery } from "@/components/volums/RoomGallery";
 import { useAppartement, useAppartements, pickStr, pickArr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
 import { useLang } from "@/i18n/LangContext";
@@ -12,8 +13,14 @@ const ApptDetail = () => {
   const { slug } = useParams();
   const { data: appt, isLoading } = useAppartement(slug);
   const { data: allAppartements = [] } = useAppartements();
-  const [lightbox, setLightbox] = useState<number | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryStartId, setGalleryStartId] = useState<string | undefined>(undefined);
   const { lang, t } = useLang();
+
+  const openGallery = (startId?: string) => {
+    setGalleryStartId(startId);
+    setGalleryOpen(true);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -21,25 +28,6 @@ const ApptDetail = () => {
       document.title = `${appt.name} ${appt.nameItalic} — Volums`;
     }
   }, [appt]);
-
-  useEffect(() => {
-    if (lightbox === null || !appt) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightbox(null);
-      if (e.key === "ArrowRight")
-        setLightbox((i) => (i === null ? null : (i + 1) % appt.gallery.length));
-      if (e.key === "ArrowLeft")
-        setLightbox((i) =>
-          i === null ? null : (i - 1 + appt.gallery.length) % appt.gallery.length,
-        );
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [lightbox, appt]);
 
   if (isLoading) {
     return (
@@ -57,7 +45,9 @@ const ApptDetail = () => {
   const inclus = pickArr(lang, appt.inclus, appt.inclusEn);
 
   const [main, ...rest] =
-    appt.gallery.length > 0 ? appt.gallery : [{ src: "", label: "", caption: "" }];
+    appt.gallery.length > 0
+      ? appt.gallery
+      : [{ src: "", label: "", caption: "" } as (typeof appt.gallery)[number]];
 
   return (
     <main className="min-h-screen bg-cream text-ink">
@@ -124,7 +114,7 @@ const ApptDetail = () => {
         <div className="relative grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden h-[280px] md:h-[480px] lg:h-[560px]">
           <button
             type="button"
-            onClick={() => setLightbox(0)}
+            onClick={() => openGallery(main.id)}
             className="relative md:col-span-2 md:row-span-2 group overflow-hidden bg-ink/5"
           >
             <img
@@ -134,11 +124,11 @@ const ApptDetail = () => {
             />
           </button>
 
-          {rest.slice(0, 4).map((g, i) => (
+          {rest.slice(0, 4).map((g) => (
             <button
               type="button"
-              key={g.label}
-              onClick={() => setLightbox(i + 1)}
+              key={g.id ?? g.label}
+              onClick={() => openGallery(g.id)}
               className="relative hidden md:block group overflow-hidden bg-ink/5"
             >
               <img
@@ -152,7 +142,7 @@ const ApptDetail = () => {
 
           <button
             type="button"
-            onClick={() => setLightbox(0)}
+            onClick={() => openGallery()}
             className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-cream text-ink border border-ink px-4 py-2 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
           >
             <span className="grid grid-cols-2 gap-0.5">
@@ -298,59 +288,13 @@ const ApptDetail = () => {
         </div>
       </section>
 
-      {/* Lightbox */}
-      {lightbox !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center p-4 md:p-10"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            aria-label={t("detail.lightbox.close")}
-            onClick={() => setLightbox(null)}
-            className="absolute top-5 right-5 text-cream/80 hover:text-cream w-10 h-10 flex items-center justify-center"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <button
-            aria-label={t("detail.lightbox.prev")}
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((i) =>
-                i === null ? null : (i - 1 + appt.gallery.length) % appt.gallery.length,
-              );
-            }}
-            className="absolute left-3 md:left-8 text-cream/80 hover:text-cream w-12 h-12 flex items-center justify-center"
-          >
-            <ChevronLeft className="w-7 h-7" />
-          </button>
-          <button
-            aria-label={t("detail.lightbox.next")}
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((i) => (i === null ? null : (i + 1) % appt.gallery.length));
-            }}
-            className="absolute right-3 md:right-8 text-cream/80 hover:text-cream w-12 h-12 flex items-center justify-center"
-          >
-            <ChevronRight className="w-7 h-7" />
-          </button>
-
-          <figure className="max-w-6xl w-full" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={appt.gallery[lightbox].src}
-              alt={appt.gallery[lightbox].caption}
-              className="w-full max-h-[80vh] object-contain"
-            />
-            <figcaption className="mt-4 flex items-center justify-between text-cream/80 font-mono-meta">
-              <span>
-                #{appt.gallery[lightbox].label} · {appt.gallery[lightbox].caption}
-              </span>
-              <span>
-                {lightbox + 1} / {appt.gallery.length}
-              </span>
-            </figcaption>
-          </figure>
-        </div>
-      )}
+      {/* Galerie par pièce */}
+      <RoomGallery
+        photos={appt.gallery}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        startPhotoId={galleryStartId}
+      />
     </main>
   );
 };

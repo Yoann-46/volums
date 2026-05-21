@@ -186,6 +186,20 @@ export const translations = {
     "detail.lightbox.prev": "Précédent",
     "detail.lightbox.next": "Suivant",
 
+    // Galerie par pièce
+    "gallery.title": "Galerie photos",
+    "gallery.close": "Fermer la galerie",
+    "gallery.allPhotos": "Toutes les photos",
+    "room.salon": "Salon",
+    "room.salle_a_manger": "Salle à manger",
+    "room.cuisine": "Cuisine",
+    "room.chambre": "Chambre",
+    "room.sdb": "Salle de bains",
+    "room.entree": "Entrée",
+    "room.bureau": "Bureau",
+    "room.exterieur": "Extérieur",
+    "room.autre": "Autre",
+
     // 404
     "notfound.title": "Page introuvable",
     "notfound.back": "Retour à l'accueil",
@@ -376,6 +390,20 @@ export const translations = {
     "detail.lightbox.close": "Close",
     "detail.lightbox.prev": "Previous",
     "detail.lightbox.next": "Next",
+
+    // Galerie par pièce
+    "gallery.title": "Photo gallery",
+    "gallery.close": "Close gallery",
+    "gallery.allPhotos": "All photos",
+    "room.salon": "Living room",
+    "room.salle_a_manger": "Dining room",
+    "room.cuisine": "Kitchen",
+    "room.chambre": "Bedroom",
+    "room.sdb": "Bathroom",
+    "room.entree": "Entrance",
+    "room.bureau": "Office",
+    "room.exterieur": "Outdoor",
+    "room.autre": "Other",
 
     // 404
     "notfound.title": "Page not found",

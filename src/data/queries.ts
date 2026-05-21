@@ -43,6 +43,8 @@ type PhotoRow = {
   label: string;
   caption: string;
   sort_order: number;
+  room: string | null;
+  room_index: number | null;
 };
 
 const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
@@ -56,6 +58,8 @@ const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
     storagePath: ph.storage_path,
     label: ph.label,
     caption: ph.caption,
+    room: (ph.room as Photo["room"]) ?? null,
+    roomIndex: ph.room_index ?? null,
   }));
 
   const cover = sorted.find((ph) => ph.id === p.cover_photo_id) ?? sorted[0];

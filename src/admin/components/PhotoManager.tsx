@@ -12,6 +12,29 @@ import {
 import { photoUrl } from "@/lib/supabase";
 import { compressImage, formatBytes } from "../lib/compressImage";
 
+// Options du menu "Pièce". value = "room" ou "room:index" ; "" = non classé.
+const ROOM_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "— Pièce —" },
+  { value: "salon", label: "Salon" },
+  { value: "salle_a_manger", label: "Salle à manger" },
+  { value: "cuisine", label: "Cuisine" },
+  { value: "chambre:1", label: "Chambre 1" },
+  { value: "chambre:2", label: "Chambre 2" },
+  { value: "chambre:3", label: "Chambre 3" },
+  { value: "chambre:4", label: "Chambre 4" },
+  { value: "chambre:5", label: "Chambre 5" },
+  { value: "sdb:1", label: "Salle de bains 1" },
+  { value: "sdb:2", label: "Salle de bains 2" },
+  { value: "sdb:3", label: "Salle de bains 3" },
+  { value: "entree", label: "Entrée" },
+  { value: "bureau", label: "Bureau" },
+  { value: "exterieur", label: "Extérieur" },
+  { value: "autre", label: "Autre" },
+];
+
+const roomToValue = (room?: string | null, index?: number | null) =>
+  room ? (index != null ? `${room}:${index}` : room) : "";
+
 export const PhotoManager = ({
   propertyId,
   coverPhotoId,
@@ -108,6 +131,19 @@ export const PhotoManager = ({
     }
   };
 
+  const onUpdateRoom = async (id: string, value: string) => {
+    const [room, idx] = value ? value.split(":") : [null, undefined];
+    try {
+      await updatePhoto(id, {
+        room: room || null,
+        room_index: idx ? parseInt(idx) : null,
+      });
+      refresh();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
+
   const move = async (idx: number, dir: -1 | 1) => {
     const next = [...photos];
     const j = idx + dir;
@@ -197,6 +233,21 @@ export const PhotoManager = ({
                     placeholder="Légende"
                     className="flex-1 border border-hairline bg-cream-soft px-2 py-1.5 text-sm"
                   />
+                </div>
+                <div className="mb-2">
+                  <select
+                    value={roomToValue(p.room, p.room_index)}
+                    onChange={(e) => onUpdateRoom(p.id, e.target.value)}
+                    className={`w-full border bg-cream-soft px-2 py-1.5 text-sm ${
+                      p.room ? "border-hairline" : "border-copper text-copper"
+                    }`}
+                  >
+                    {ROOM_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">

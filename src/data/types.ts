@@ -1,9 +1,23 @@
+/** Clés de pièce — voir RoomGallery + i18n room.* */
+export type RoomKey =
+  | "salon"
+  | "salle_a_manger"
+  | "cuisine"
+  | "chambre"
+  | "sdb"
+  | "entree"
+  | "bureau"
+  | "exterieur"
+  | "autre";
+
 export type Photo = {
   id?: string;
   src: string;
   storagePath?: string;
   label: string;
   caption: string;
+  room?: RoomKey | null;
+  roomIndex?: number | null;
 };
 
 export type Appt = {
