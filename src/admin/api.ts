@@ -255,7 +255,13 @@ export const uploadPhoto = async (
 
 export const updatePhoto = async (
   id: string,
-  input: { label?: string; caption?: string; sort_order?: number },
+  input: {
+    label?: string;
+    caption?: string;
+    sort_order?: number;
+    room?: string | null;
+    room_index?: number | null;
+  },
 ) => {
   const sb = must();
   const { error } = await sb.from("property_photos").update(input).eq("id", id);
