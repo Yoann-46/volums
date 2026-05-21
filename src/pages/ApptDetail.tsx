@@ -231,6 +231,7 @@ const ApptDetail = () => {
             <dl className="mt-6 space-y-3 text-sm">
               <Row k={t("detail.book.charges")} v={t("detail.book.included")} />
               <Row k={t("detail.book.welcome")} v={t("detail.book.included")} />
+              <Row k={t("detail.book.cleaning")} v={t("detail.book.optional")} />
             </dl>
 
             <a
