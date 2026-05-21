@@ -127,7 +127,7 @@ export const RoomGallery = ({
         </div>
 
         {/* Nav strip — vignettes par pièce */}
-        <div className="mx-auto max-w-[1200px] px-5 md:px-8 pb-3 flex gap-3 overflow-x-auto">
+        <div className="mx-auto max-w-[1200px] px-5 md:px-8 pb-3 flex gap-2.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
           {groups.map((g) => (
             <button
               key={g.key}
@@ -135,7 +135,7 @@ export const RoomGallery = ({
               onClick={() => scrollToSection(g.key)}
               className="shrink-0 group text-left"
             >
-              <div className="w-24 h-16 md:w-28 md:h-20 overflow-hidden bg-ink/5 border border-hairline">
+              <div className="w-28 h-20 md:w-32 md:h-24 overflow-hidden rounded-xl bg-ink/5 border border-hairline">
                 <img
                   src={g.photos[0]?.src}
                   alt={label(g)}
@@ -143,7 +143,7 @@ export const RoomGallery = ({
                   loading="lazy"
                 />
               </div>
-              <div className="font-mono-meta text-[0.62rem] text-slate mt-1 group-hover:text-ink transition-colors">
+              <div className="font-mono-meta text-[0.65rem] md:text-xs text-slate mt-1.5 group-hover:text-ink transition-colors">
                 {label(g)}
               </div>
             </button>
@@ -160,15 +160,15 @@ export const RoomGallery = ({
               <section
                 key={g.key}
                 ref={(el) => (sectionRefs.current[g.key] = el)}
-                className="mb-14 md:mb-20 scroll-mt-32"
+                className="mb-14 md:mb-20 scroll-mt-44 md:scroll-mt-48"
               >
-                <h2 className="font-display text-2xl md:text-3xl mb-5">{label(g)}</h2>
+                <h2 className="font-display text-2xl md:text-3xl mb-4 md:mb-5">{label(g)}</h2>
 
                 {first && (
                   <button
                     type="button"
                     onClick={() => setLightbox(flat.findIndex((p) => p === first))}
-                    className="block w-full aspect-[16/10] overflow-hidden bg-ink/5 mb-2 group"
+                    className="block w-full aspect-[16/10] overflow-hidden rounded-2xl bg-ink/5 mb-2.5 group"
                   >
                     <img
                       src={first.src}
@@ -179,13 +179,13 @@ export const RoomGallery = ({
                 )}
 
                 {rest.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {rest.map((p) => (
                       <button
                         key={p.id ?? p.src}
                         type="button"
                         onClick={() => setLightbox(flat.findIndex((x) => x === p))}
-                        className="block aspect-[4/3] overflow-hidden bg-ink/5 group"
+                        className="block aspect-[4/3] overflow-hidden rounded-xl bg-ink/5 group"
                       >
                         <img
                           src={p.src}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { Heart, Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
@@ -20,6 +20,14 @@ const ApptDetail = () => {
   const openGallery = (startId?: string) => {
     setGalleryStartId(startId);
     setGalleryOpen(true);
+  };
+
+  // Carrousel mobile — suit la photo visible pour le compteur "n / total".
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const onHeroScroll = () => {
+    const el = heroRef.current;
+    if (el) setHeroIdx(Math.round(el.scrollLeft / el.clientWidth));
   };
 
   useEffect(() => {
@@ -53,17 +61,18 @@ const ApptDetail = () => {
     <main className="min-h-screen bg-cream text-ink">
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-cream/85 backdrop-blur-md border-b border-hairline">
-        <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-4 flex items-center justify-between">
-          <Link to="/" aria-label={t("nav.home")} className="text-ink">
+        <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-4 flex items-center justify-between gap-4">
+          <Link to="/" aria-label={t("nav.home")} className="text-ink shrink-0">
             <Wordmark />
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
             <LangToggle variant="ink" />
             <Link
               to="/#appartements"
-              className="font-mono-meta text-slate hover:text-ink transition-colors inline-flex items-center gap-2"
+              className="font-mono-meta text-slate hover:text-ink transition-colors inline-flex items-center gap-2 shrink-0"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> {t("detail.headerBack")}
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t("detail.headerBack")}</span>
             </Link>
           </div>
         </div>
@@ -109,9 +118,52 @@ const ApptDetail = () => {
         </div>
       </section>
 
-      {/* Gallery mosaic — Airbnb style */}
-      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-10 md:mt-14">
-        <div className="relative grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden h-[280px] md:h-[480px] lg:h-[560px]">
+      {/* Gallery — carrousel plein cadre sur mobile, mosaïque sur desktop */}
+      <section className="mt-8 md:mt-14 md:mx-auto md:max-w-[1440px] md:px-12 lg:px-16">
+        {/* Mobile — carrousel swipeable */}
+        <div className="md:hidden relative">
+          <div
+            ref={heroRef}
+            onScroll={onHeroScroll}
+            className="flex snap-x snap-mandatory overflow-x-auto [&::-webkit-scrollbar]:hidden"
+          >
+            {appt.gallery.map((g) => (
+              <button
+                type="button"
+                key={g.id ?? g.label}
+                onClick={() => openGallery(g.id)}
+                className="relative w-full shrink-0 snap-center aspect-[4/3] bg-ink/5"
+              >
+                <img
+                  src={g.src}
+                  alt={g.caption}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+          {appt.gallery.length > 1 && (
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/75 px-2.5 py-1 font-mono-meta text-[0.7rem] text-cream">
+              {heroIdx + 1} / {appt.gallery.length}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => openGallery()}
+            className="absolute bottom-3 left-3 inline-flex items-center gap-2 bg-cream/95 text-ink px-3 py-2 font-mono-meta text-xs shadow-sm"
+          >
+            <span className="grid grid-cols-2 gap-0.5">
+              <span className="w-1.5 h-1.5 bg-current" />
+              <span className="w-1.5 h-1.5 bg-current" />
+              <span className="w-1.5 h-1.5 bg-current" />
+              <span className="w-1.5 h-1.5 bg-current" />
+            </span>
+            {tFormat(t("detail.gallery.showAll"), { n: appt.gallery.length })}
+          </button>
+        </div>
+
+        {/* Desktop — mosaïque */}
+        <div className="relative hidden md:grid md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden md:h-[480px] lg:h-[560px]">
           <button
             type="button"
             onClick={() => openGallery(main.id)}
@@ -129,7 +181,7 @@ const ApptDetail = () => {
               type="button"
               key={g.id ?? g.label}
               onClick={() => openGallery(g.id)}
-              className="relative hidden md:block group overflow-hidden bg-ink/5"
+              className="relative group overflow-hidden bg-ink/5"
             >
               <img
                 src={g.src}
