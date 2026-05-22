@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Nav } from "@/components/volums/Nav";
 import { useAppartements, pickStr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
@@ -86,111 +86,223 @@ const Card = ({ a }: { a: Appt }) => {
   );
 };
 
-const Select = ({
-  label,
+// Sélecteur compact (une seule ligne, sans libellé séparé).
+const FilterSelect = ({
   value,
   onChange,
   options,
 }: {
-  label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
-}) => (
-  <label className="block">
-    <span className="block font-mono-meta text-xs text-slate mb-1.5">{label}</span>
+}) => {
+  const active = value !== "all";
+  return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full border border-hairline bg-cream-soft px-3 py-2.5 font-mono-meta text-sm focus:outline-none focus:border-ink"
+      className={`h-9 shrink-0 pl-3 pr-7 border font-mono-meta text-xs cursor-pointer focus:outline-none transition-colors ${
+        active
+          ? "border-ink bg-ink text-cream"
+          : "border-hairline bg-cream-soft text-ink hover:border-ink"
+      }`}
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value}>
+        <option key={o.value} value={o.value} className="bg-cream text-ink">
           {o.label}
         </option>
       ))}
     </select>
-  </label>
-);
+  );
+};
 
-// Curseur de fourchette de loyer — deux poignées réglables (façon Airbnb).
-const PriceRange = ({
+// Filtre loyer : pastille compacte + mini-fenêtre modale (histogramme + curseur).
+const PriceFilter = ({
   min,
   max,
   step,
+  prices,
   value,
   onChange,
 }: {
   min: number;
   max: number;
   step: number;
+  prices: number[];
   value: [number, number];
   onChange: (v: [number, number]) => void;
 }) => {
   const { t } = useLang();
+  const [open, setOpen] = useState(false);
   const [lo, hi] = value;
-  const span = max - min;
-  const pct = (n: number) => (span > 0 ? ((n - min) / span) * 100 : 0);
+  const active = lo > min || hi < max;
+  const span = max - min || 1;
+  const pct = (n: number) => ((n - min) / span) * 100;
+
+  // Histogramme : nombre d'appartements par tranche de loyer.
+  const BINS = 24;
+  const bins = useMemo(() => {
+    const counts = new Array(BINS).fill(0);
+    for (const p of prices) {
+      let i = Math.floor(((p - min) / span) * BINS);
+      if (i < 0) i = 0;
+      if (i >= BINS) i = BINS - 1;
+      counts[i]++;
+    }
+    return counts;
+  }, [prices, min, span]);
+  const maxCount = Math.max(1, ...bins);
+
+  // Verrou du scroll + fermeture à la touche Échap.
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <div>
-      {/* Piste + poignées */}
-      <div className="relative h-7">
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-ink/15 rounded-full" />
-        <div
-          className="absolute top-1/2 -translate-y-1/2 h-[3px] bg-ink rounded-full"
-          style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
-        />
-        <input
-          type="range"
-          className="vol-range"
-          min={min}
-          max={max}
-          step={step}
-          value={lo}
-          aria-label={t("list.filter.loyer.min")}
-          onChange={(e) =>
-            onChange([Math.min(Number(e.target.value), hi - step), hi])
-          }
-          style={{ zIndex: lo > min + span * 0.9 ? 5 : 3 }}
-        />
-        <input
-          type="range"
-          className="vol-range"
-          min={min}
-          max={max}
-          step={step}
-          value={hi}
-          aria-label={t("list.filter.loyer.max")}
-          onChange={(e) =>
-            onChange([lo, Math.max(Number(e.target.value), lo + step)])
-          }
-          style={{ zIndex: 4 }}
-        />
-      </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`h-9 shrink-0 px-3.5 border font-mono-meta text-xs whitespace-nowrap transition-colors ${
+          active
+            ? "border-ink bg-ink text-cream"
+            : "border-hairline bg-cream-soft text-ink hover:border-ink"
+        }`}
+      >
+        {active
+          ? `${formatEuro(lo)} – ${formatEuro(hi)}${hi >= max ? "+" : ""}`
+          : t("list.filter.loyer")}
+      </button>
 
-      {/* Valeurs sélectionnées */}
-      <div className="mt-3 flex items-center gap-3">
-        <div className="flex-1 border border-hairline bg-cream px-3 py-2">
-          <div className="font-mono-meta text-[0.65rem] text-slate">
-            {t("list.filter.loyer.min")}
-          </div>
-          <div className="font-display text-base leading-tight">
-            {formatEuro(lo)}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-cream border border-hairline w-[360px] max-w-full p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-display text-xl leading-none">
+                  {t("list.filter.loyer")}
+                </h3>
+                <p className="font-mono-meta text-[0.7rem] text-slate mt-1.5">
+                  {t("list.filter.loyer.hint")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label={t("list.filter.loyer.close")}
+                className="w-8 h-8 shrink-0 flex items-center justify-center border border-hairline hover:bg-ink hover:text-cream transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Histogramme + curseur */}
+            <div className="mt-6 relative">
+              <div className="flex items-end gap-[2px] h-14">
+                {bins.map((c, i) => {
+                  const mid = min + ((i + 0.5) / BINS) * span;
+                  const inRange = mid >= lo && mid <= hi;
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-t-[2px]"
+                      style={{
+                        height: `${Math.max(c > 0 ? 14 : 5, (c / maxCount) * 100)}%`,
+                        background: inRange
+                          ? "hsl(26 53% 51%)"
+                          : "hsl(218 16% 12% / 0.12)",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {/* piste à la base de l'histogramme */}
+              <div className="absolute inset-x-0 bottom-0 h-[3px] bg-ink/15 rounded-full" />
+              <div
+                className="absolute bottom-0 h-[3px] bg-ink rounded-full"
+                style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+              />
+              <input
+                type="range"
+                className="vol-range"
+                min={min}
+                max={max}
+                step={step}
+                value={lo}
+                aria-label={t("list.filter.loyer.min")}
+                onChange={(e) =>
+                  onChange([Math.min(Number(e.target.value), hi - step), hi])
+                }
+                style={{
+                  height: "28px",
+                  top: "auto",
+                  bottom: "-12.5px",
+                  zIndex: lo > min + span * 0.9 ? 5 : 3,
+                }}
+              />
+              <input
+                type="range"
+                className="vol-range"
+                min={min}
+                max={max}
+                step={step}
+                value={hi}
+                aria-label={t("list.filter.loyer.max")}
+                onChange={(e) =>
+                  onChange([lo, Math.max(Number(e.target.value), lo + step)])
+                }
+                style={{ height: "28px", top: "auto", bottom: "-12.5px", zIndex: 4 }}
+              />
+            </div>
+
+            {/* Valeurs */}
+            <div className="mt-7 flex items-center gap-3">
+              <div className="flex-1 border border-hairline bg-cream-soft px-3 py-2">
+                <div className="font-mono-meta text-[0.6rem] text-slate">
+                  {t("list.filter.loyer.min")}
+                </div>
+                <div className="font-display text-base leading-tight">
+                  {formatEuro(lo)}
+                </div>
+              </div>
+              <span className="w-3 h-px bg-hairline shrink-0" />
+              <div className="flex-1 border border-hairline bg-cream-soft px-3 py-2">
+                <div className="font-mono-meta text-[0.6rem] text-slate">
+                  {t("list.filter.loyer.max")}
+                </div>
+                <div className="font-display text-base leading-tight">
+                  {formatEuro(hi)}
+                  {hi >= max ? "+" : ""}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-5 w-full bg-ink text-cream py-2.5 font-mono-meta text-sm hover:bg-copper transition-colors"
+            >
+              {t("list.filter.loyer.apply")}
+            </button>
           </div>
         </div>
-        <span className="w-3 h-px bg-hairline shrink-0" />
-        <div className="flex-1 border border-hairline bg-cream px-3 py-2">
-          <div className="font-mono-meta text-[0.65rem] text-slate">
-            {t("list.filter.loyer.max")}
-          </div>
-          <div className="font-display text-base leading-tight">
-            {formatEuro(hi)}
-            {hi >= max ? "+" : ""}
-          </div>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 
@@ -213,16 +325,19 @@ const AppartementsList = () => {
     return Array.from(set).sort();
   }, [appartements]);
 
+  const prices = useMemo(
+    () => appartements.map((a) => a.loyerNum).filter((n) => n > 0),
+    [appartements],
+  );
+
   // Bornes du curseur de loyer, calculées sur les données (arrondies à 100 €).
   const bounds = useMemo(() => {
-    const prices = appartements.map((a) => a.loyerNum).filter((n) => n > 0);
     if (prices.length === 0) return { min: 0, max: 1000 };
     const lo = Math.floor(Math.min(...prices) / 100) * 100;
     const hi = Math.ceil(Math.max(...prices) / 100) * 100;
     return { min: lo, max: hi > lo ? hi : lo + 100 };
-  }, [appartements]);
+  }, [prices]);
 
-  // Plage effective : ce que l'utilisateur a réglé, sinon les bornes complètes.
   const loyer: [number, number] = loyerRange ?? [bounds.min, bounds.max];
 
   const filtered = useMemo(() => {
@@ -271,95 +386,78 @@ const AppartementsList = () => {
         </h1>
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-10 md:mt-14">
-        <div className="border border-hairline bg-cream-soft p-5 md:p-6">
-          {/* Recherche */}
-          <label className="block">
-            <span className="block font-mono-meta text-xs text-slate mb-1.5">
-              {t("list.search.label")}
-            </span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate pointer-events-none" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("list.search.placeholder")}
-                className="w-full border border-hairline bg-cream pl-9 pr-3 py-2.5 font-mono-meta text-sm focus:outline-none focus:border-ink"
-              />
-            </div>
-          </label>
-
-          {/* Sélecteurs */}
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Select
-              label={t("list.filter.quartier")}
-              value={quartier}
-              onChange={setQuartier}
-              options={[
-                { value: "all", label: t("list.filter.quartier.all") },
-                ...quartiers.map((q) => ({ value: q, label: q })),
-              ]}
-            />
-            <Select
-              label={t("list.filter.chambres")}
-              value={chambres}
-              onChange={setChambres}
-              options={[
-                { value: "all", label: t("list.filter.chambres.all") },
-                { value: "1", label: "1" },
-                { value: "2", label: "2" },
-                { value: "3", label: "3" },
-                { value: "4+", label: t("list.filter.chambres.4plus") },
-              ]}
-            />
-            <Select
-              label={t("list.filter.surface")}
-              value={surfaceMin}
-              onChange={setSurfaceMin}
-              options={[
-                { value: "all", label: t("list.filter.surface.all") },
-                { value: "40", label: "≥ 40 m²" },
-                { value: "60", label: "≥ 60 m²" },
-                { value: "90", label: "≥ 90 m²" },
-                { value: "120", label: "≥ 120 m²" },
-              ]}
+      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-8 md:mt-10">
+        {/* Barre de filtres — une seule ligne (défilement horizontal sur mobile) */}
+        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="relative shrink-0 w-44 md:w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate pointer-events-none" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("list.search.placeholder")}
+              aria-label={t("list.search.label")}
+              className="h-9 w-full border border-hairline bg-cream-soft pl-8 pr-3 font-mono-meta text-xs focus:outline-none focus:border-ink"
             />
           </div>
+          <FilterSelect
+            value={quartier}
+            onChange={setQuartier}
+            options={[
+              { value: "all", label: t("list.filter.quartier") },
+              ...quartiers.map((q) => ({ value: q, label: q })),
+            ]}
+          />
+          <FilterSelect
+            value={chambres}
+            onChange={setChambres}
+            options={[
+              { value: "all", label: t("list.filter.chambres") },
+              { value: "1", label: `1 ${t("list.card.ch")}` },
+              { value: "2", label: `2 ${t("list.card.ch")}` },
+              { value: "3", label: `3 ${t("list.card.ch")}` },
+              { value: "4+", label: `4+ ${t("list.card.ch")}` },
+            ]}
+          />
+          <FilterSelect
+            value={surfaceMin}
+            onChange={setSurfaceMin}
+            options={[
+              { value: "all", label: t("list.filter.surface") },
+              { value: "40", label: "≥ 40 m²" },
+              { value: "60", label: "≥ 60 m²" },
+              { value: "90", label: "≥ 90 m²" },
+              { value: "120", label: "≥ 120 m²" },
+            ]}
+          />
+          <PriceFilter
+            min={bounds.min}
+            max={bounds.max}
+            step={100}
+            prices={prices}
+            value={loyer}
+            onChange={setLoyerRange}
+          />
+        </div>
 
-          {/* Loyer — fourchette réglable */}
-          <div className="mt-5 max-w-xl">
-            <span className="block font-mono-meta text-xs text-slate mb-3">
-              {t("list.filter.loyer")}
-            </span>
-            <PriceRange
-              min={bounds.min}
-              max={bounds.max}
-              step={100}
-              value={loyer}
-              onChange={setLoyerRange}
-            />
-          </div>
-
-          {/* Résultats + réinitialisation */}
-          <div className="mt-6 flex items-center justify-between font-mono-meta text-xs">
-            <span className="text-slate">
-              {tFormat(
-                filtered.length > 1 ? t("list.results.many") : t("list.results.one"),
-                { n: filtered.length },
-              )}
-              {hasFilters && ` ${tFormat(t("list.results.outOf"), { total: appartements.length })}`}
-            </span>
-            {hasFilters && (
-              <button onClick={reset} className="text-copper hover:text-ink">
-                {t("list.results.reset")}
-              </button>
+        {/* Résultats + réinitialisation */}
+        <div className="mt-3 flex items-center gap-3 font-mono-meta text-xs">
+          <span className="text-slate">
+            {tFormat(
+              filtered.length > 1 ? t("list.results.many") : t("list.results.one"),
+              { n: filtered.length },
             )}
-          </div>
+            {hasFilters && ` ${tFormat(t("list.results.outOf"), { total: appartements.length })}`}
+          </span>
+          {hasFilters && (
+            <button onClick={reset} className="text-copper hover:text-ink">
+              {t("list.results.reset")}
+            </button>
+          )}
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-10 pb-24 md:pb-32">
+      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-8 pb-24 md:pb-32">
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[0, 1, 2].map((i) => (
