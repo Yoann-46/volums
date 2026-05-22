@@ -1,6 +1,6 @@
 // Fonction serverless Vercel — classe une photo d'appartement par pièce
-// via Google Gemini Vision. La clé API reste côté serveur (jamais exposée
-// au navigateur). Appelée par l'admin après l'upload d'une photo.
+// via Google Gemini Vision. La clé API reste côté serveur (jamais exposée).
+// Signature Web standard : Vercel route la requête vers POST() / GET().
 
 export const config = { maxDuration: 25 };
 
@@ -36,6 +36,12 @@ const GEMINI_URL =
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const json = (data: unknown, status = 200): Response =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+
 // Requête Gemini avec un retry sur 429 (limite de débit du palier gratuit).
 async function callGemini(
   apiKey: string,
@@ -68,60 +74,35 @@ async function callGemini(
   return null;
 }
 
-interface ApiReq {
-  method?: string;
-  body?: unknown;
-}
-interface ApiRes {
-  status: (code: number) => ApiRes;
-  json: (data: unknown) => void;
-}
-
-export default async function handler(req: ApiReq, res: ApiRes) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
+export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    res.status(500).json({ error: "GEMINI_API_KEY non configurée" });
-    return;
-  }
+  if (!apiKey) return json({ error: "GEMINI_API_KEY non configurée" }, 500);
 
-  let payload: unknown = req.body;
-  if (typeof payload === "string") {
-    try {
-      payload = JSON.parse(payload);
-    } catch {
-      payload = undefined;
-    }
+  let imageUrl: string | undefined;
+  try {
+    const body = (await request.json()) as { imageUrl?: string };
+    imageUrl = body?.imageUrl;
+  } catch {
+    // Corps absent ou non-JSON.
   }
-  const imageUrl = (payload as { imageUrl?: string } | undefined)?.imageUrl;
   if (!imageUrl || typeof imageUrl !== "string") {
-    res.status(400).json({ error: "imageUrl requis" });
-    return;
+    return json({ error: "imageUrl requis" }, 400);
   }
 
   try {
     const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) {
-      res.status(400).json({ error: "Image inaccessible" });
-      return;
-    }
+    if (!imgRes.ok) return json({ error: "Image inaccessible" }, 502);
     const mime = imgRes.headers.get("content-type") || "image/jpeg";
     const base64 = Buffer.from(await imgRes.arrayBuffer()).toString("base64");
 
     const geminiRes = await callGemini(apiKey, mime, base64);
-    if (!geminiRes) {
-      res.status(429).json({ error: "Limite de débit Gemini" });
-      return;
-    }
+    if (!geminiRes) return json({ error: "Limite de débit Gemini" }, 429);
     if (!geminiRes.ok) {
       const detail = (await geminiRes.text()).slice(0, 200);
-      res
-        .status(geminiRes.status === 429 ? 429 : 502)
-        .json({ error: `Gemini ${geminiRes.status}`, detail });
-      return;
+      return json(
+        { error: `Gemini ${geminiRes.status}`, detail },
+        geminiRes.status === 429 ? 429 : 502,
+      );
     }
 
     const data = (await geminiRes.json()) as {
@@ -134,8 +115,14 @@ export default async function handler(req: ApiReq, res: ApiRes) {
       ROOMS.find((r) => text === r) ??
       ROOMS.find((r) => text.includes(r)) ??
       "autre";
-    res.status(200).json({ room });
+    return json({ room });
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Erreur" });
+    return json({ error: e instanceof Error ? e.message : "Erreur" }, 500);
   }
+}
+
+// Diagnostic : GET /api/classify-room confirme que la fonction tourne
+// et que la clé est bien configurée.
+export function GET(): Response {
+  return json({ ok: true, hasKey: Boolean(process.env.GEMINI_API_KEY) });
 }
