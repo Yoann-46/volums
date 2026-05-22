@@ -46,6 +46,7 @@ export const PhotoManager = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<{
+    phase: "upload" | "classify";
     current: number;
     total: number;
     savedBytes: number;
@@ -66,21 +67,27 @@ export const PhotoManager = ({
     if (!files || files.length === 0) return;
     setUploading(true);
     const list = Array.from(files);
-    setProgress({ current: 0, total: list.length, savedBytes: 0 });
+    setProgress({ phase: "upload", current: 0, total: list.length, savedBytes: 0 });
     let savedBytes = 0;
+    const uploaded: { id: string; storage_path: string }[] = [];
     try {
       const start = photos.length;
       let i = 0;
       for (const f of list) {
-        setProgress({ current: i + 1, total: list.length, savedBytes });
+        setProgress({ phase: "upload", current: i + 1, total: list.length, savedBytes });
         // Compression côté navigateur AVANT upload (max 2000 px, JPEG q=0.82).
         const { file, originalSize, finalSize } = await compressImage(f);
         savedBytes += Math.max(0, originalSize - finalSize);
         const order = start + i;
         const label = String(order + 1).padStart(2, "0");
-        await uploadPhoto(propertyId, file, { label, caption: "", sort_order: order });
+        const photo = (await uploadPhoto(propertyId, file, {
+          label,
+          caption: "",
+          sort_order: order,
+        })) as { id: string; storage_path: string };
+        uploaded.push({ id: photo.id, storage_path: photo.storage_path });
         i++;
-        setProgress({ current: i, total: list.length, savedBytes });
+        setProgress({ phase: "upload", current: i, total: list.length, savedBytes });
       }
       toast.success(
         savedBytes > 0
@@ -88,6 +95,41 @@ export const PhotoManager = ({
           : `${list.length} photo(s) uploadée(s)`,
       );
       refresh();
+
+      // Classement automatique par pièce (Gemini Vision, via /api/classify-room).
+      // Séquentiel pour respecter la limite de débit ; tolérant aux erreurs —
+      // une photo non classée reste réglable à la main dans le menu « Pièce ».
+      let classified = 0;
+      for (let j = 0; j < uploaded.length; j++) {
+        setProgress({
+          phase: "classify",
+          current: j,
+          total: uploaded.length,
+          savedBytes,
+        });
+        try {
+          const res = await fetch("/api/classify-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageUrl: photoUrl(uploaded[j].storage_path) }),
+          });
+          if (res.ok) {
+            const { room } = (await res.json()) as { room?: string };
+            if (room) {
+              await updatePhoto(uploaded[j].id, { room });
+              classified++;
+            }
+          }
+        } catch {
+          // Échec réseau / fonction indisponible → classement manuel possible.
+        }
+      }
+      if (classified > 0) {
+        toast.success(
+          `${classified}/${uploaded.length} photo(s) classée(s) automatiquement`,
+        );
+        refresh();
+      }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
     } finally {
@@ -111,6 +153,18 @@ export const PhotoManager = ({
   const onSetCover = async (id: string) => {
     try {
       await setCoverPhoto(propertyId, id);
+      // La photo de couverture remonte en 1re position de la liste.
+      const cover = photos.find((p) => p.id === id);
+      if (cover) {
+        const reordered = [cover, ...photos.filter((p) => p.id !== id)];
+        await Promise.all(
+          reordered.map((p, i) =>
+            p.sort_order !== i
+              ? updatePhoto(p.id, { sort_order: i })
+              : Promise.resolve(),
+          ),
+        );
+      }
       toast.success("Photo principale définie");
       refresh();
     } catch (e: unknown) {
@@ -181,7 +235,9 @@ export const PhotoManager = ({
           <Upload className="w-4 h-4" />{" "}
           {uploading
             ? progress
-              ? `Compression & upload ${progress.current}/${progress.total}…`
+              ? progress.phase === "classify"
+                ? `Classement ${progress.current}/${progress.total}…`
+                : `Compression & upload ${progress.current}/${progress.total}…`
               : "Upload…"
             : "Ajouter des photos"}
         </button>
