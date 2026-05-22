@@ -24,7 +24,8 @@ export const Nav = () => {
   }, [open]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-ink/70 backdrop-blur-md border-b border-cream/10">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-40 bg-ink/70 backdrop-blur-md border-b border-cream/10">
       <div className="mx-auto max-w-[1440px] px-6 md:px-12 py-4 flex items-center justify-between text-cream">
         <a href="#" aria-label={t("nav.home")}>
           <Wordmark />
@@ -62,8 +63,11 @@ export const Nav = () => {
           </button>
         </div>
       </div>
+      </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — rendu hors du <header> : son backdrop-blur crée un
+          bloc conteneur qui casserait le positionnement « fixed » du drawer
+          (menu sans fond sur iOS Safari). */}
       {open && (
         <div className="fixed inset-0 z-50 bg-ink text-cream md:hidden flex flex-col">
           <div className="flex items-center justify-between px-6 py-5">
@@ -102,6 +106,6 @@ export const Nav = () => {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 };
