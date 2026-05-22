@@ -104,57 +104,53 @@ export const PhotoManager = ({
       // à la main dans le menu « Pièce ».
       const BATCH = 6;
       const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      type Up = { id: string; storage_path: string };
+      const batches: Up[][] = [];
+      for (let k = 0; k < uploaded.length; k += BATCH) {
+        batches.push(uploaded.slice(k, k + BATCH));
+      }
       let classified = 0;
       let done = 0;
-      for (let k = 0; k < uploaded.length; k += BATCH) {
-        const batch = uploaded.slice(k, k + BATCH);
-        setProgress({
-          phase: "classify",
-          current: done,
-          total: uploaded.length,
-          savedBytes,
-        });
-        // Jusqu'à 3 tentatives : sur 429 (limite de débit Gemini) on patiente
-        // puis on réessaie le lot. Tolérant aux erreurs sinon.
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            const res = await fetch("/api/classify-room", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                imageUrls: batch.map((p) => photoUrl(p.storage_path)),
-              }),
-            });
-            if (res.ok) {
-              const { rooms } = (await res.json()) as { rooms?: string[] };
-              if (Array.isArray(rooms) && rooms.length === batch.length) {
-                await Promise.all(
-                  batch.map((p, idx) => {
-                    const room = rooms[idx];
-                    if (!room) return Promise.resolve();
-                    classified++;
-                    return updatePhoto(p.id, { room });
-                  }),
-                );
-              }
-              break;
-            }
-            if (res.status === 429 && attempt < 2) {
-              await sleep(25000);
-              continue;
-            }
-            break;
-          } catch {
-            break;
-          }
+
+      // Classe un lot en UN seul appel. Renvoie true si réussi.
+      const classifyBatch = async (batch: Up[]): Promise<boolean> => {
+        try {
+          const res = await fetch("/api/classify-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imageUrls: batch.map((p) => photoUrl(p.storage_path)),
+            }),
+          });
+          if (!res.ok) return false;
+          const { rooms } = (await res.json()) as { rooms?: string[] };
+          if (!Array.isArray(rooms) || rooms.length !== batch.length) return false;
+          await Promise.all(
+            batch.map((p, idx) => updatePhoto(p.id, { room: rooms[idx] })),
+          );
+          return true;
+        } catch {
+          return false;
         }
-        done += batch.length;
-        setProgress({
-          phase: "classify",
-          current: done,
-          total: uploaded.length,
-          savedBytes,
-        });
+      };
+
+      // 1er passage — un lot toutes les ~7 s, pour rester sous la limite Gemini.
+      const failed: Up[][] = [];
+      for (let b = 0; b < batches.length; b++) {
+        if (b > 0) await sleep(7000);
+        setProgress({ phase: "classify", current: done, total: uploaded.length, savedBytes });
+        if (await classifyBatch(batches[b])) classified += batches[b].length;
+        else failed.push(batches[b]);
+        done += batches[b].length;
+        setProgress({ phase: "classify", current: done, total: uploaded.length, savedBytes });
+      }
+      // Une seule passe de rattrapage pour les lots éventuellement ratés.
+      if (failed.length > 0) {
+        await sleep(35000);
+        for (let b = 0; b < failed.length; b++) {
+          if (b > 0) await sleep(7000);
+          if (await classifyBatch(failed[b])) classified += failed[b].length;
+        }
       }
       if (classified > 0) {
         toast.success(

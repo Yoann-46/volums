@@ -1,7 +1,7 @@
 // Fonction serverless Vercel — classe des photos d'appartement par pièce
 // via Google Gemini Vision. La clé API reste côté serveur (jamais exposée).
-// Classement PAR LOTS : un seul appel Gemini pour plusieurs photos, afin
-// de rester sous la limite de débit du palier gratuit.
+// UN seul appel Gemini par lot : aucun retry ici. Le rythme (espacement
+// des lots) est géré côté client, pour rester sous la limite de débit.
 
 export const config = { maxDuration: 60 };
 
@@ -36,8 +36,6 @@ Indices :
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 const json = (data: unknown, status = 200): Response =>
   new Response(JSON.stringify(data), {
     status,
@@ -46,11 +44,7 @@ const json = (data: unknown, status = 200): Response =>
 
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 
-// Requête Gemini avec retries sur 429 (limite de débit du palier gratuit).
-async function callGemini(
-  apiKey: string,
-  parts: Part[],
-): Promise<Response | null> {
+async function callGemini(apiKey: string, parts: Part[]): Promise<Response> {
   const body = JSON.stringify({
     contents: [{ parts }],
     generationConfig: {
@@ -59,19 +53,11 @@ async function callGemini(
       responseSchema: { type: "ARRAY", items: { type: "STRING", enum: ROOMS } },
     },
   });
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
-      body,
-    });
-    if (res.status === 429 && attempt < 2) {
-      await sleep(4000 * (attempt + 1));
-      continue;
-    }
-    return res;
-  }
-  return null;
+  return fetch(GEMINI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
+    body,
+  });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -109,7 +95,6 @@ export async function POST(request: Request): Promise<Response> {
     ];
 
     const geminiRes = await callGemini(apiKey, parts);
-    if (!geminiRes) return json({ error: "Limite de débit Gemini" }, 429);
     if (!geminiRes.ok) {
       const detail = (await geminiRes.text()).slice(0, 200);
       return json(
