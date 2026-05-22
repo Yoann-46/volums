@@ -1,15 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
 import { Nav } from "@/components/volums/Nav";
 import { useAppartements, pickStr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
 import { useLang } from "@/i18n/LangContext";
 import { tFormat } from "@/i18n/translations";
 import type { Appt } from "@/data/types";
+import "./appartements.css";
 
 const numFromString = (s: string) => {
   const m = s.match(/\d+/);
   return m ? parseInt(m[0]) : 0;
+};
+
+// Normalisation pour la recherche : minuscules, sans accents.
+const norm = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// Recherche par référence (sans tenir compte de la casse ni des espaces),
+// par nom d'appartement ou par lieu (quartier / arrondissement).
+const matchesSearch = (a: Appt, raw: string) => {
+  const q = norm(raw.trim());
+  if (!q) return true;
+  const ref = norm(a.ref).replace(/\s+/g, "");
+  const name = norm(`${a.name} ${a.nameItalic}`);
+  const loc = norm(`${a.quartier} ${a.arrondissement}`);
+  return (
+    ref.includes(q.replace(/\s+/g, "")) ||
+    name.includes(q) ||
+    loc.includes(q)
+  );
 };
 
 const Card = ({ a }: { a: Appt }) => {
@@ -92,13 +113,95 @@ const Select = ({
   </label>
 );
 
+// Curseur de fourchette de loyer — deux poignées réglables (façon Airbnb).
+const PriceRange = ({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  step: number;
+  value: [number, number];
+  onChange: (v: [number, number]) => void;
+}) => {
+  const { t } = useLang();
+  const [lo, hi] = value;
+  const span = max - min;
+  const pct = (n: number) => (span > 0 ? ((n - min) / span) * 100 : 0);
+
+  return (
+    <div>
+      {/* Piste + poignées */}
+      <div className="relative h-7">
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-ink/15 rounded-full" />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 h-[3px] bg-ink rounded-full"
+          style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+        />
+        <input
+          type="range"
+          className="vol-range"
+          min={min}
+          max={max}
+          step={step}
+          value={lo}
+          aria-label={t("list.filter.loyer.min")}
+          onChange={(e) =>
+            onChange([Math.min(Number(e.target.value), hi - step), hi])
+          }
+          style={{ zIndex: lo > min + span * 0.9 ? 5 : 3 }}
+        />
+        <input
+          type="range"
+          className="vol-range"
+          min={min}
+          max={max}
+          step={step}
+          value={hi}
+          aria-label={t("list.filter.loyer.max")}
+          onChange={(e) =>
+            onChange([lo, Math.max(Number(e.target.value), lo + step)])
+          }
+          style={{ zIndex: 4 }}
+        />
+      </div>
+
+      {/* Valeurs sélectionnées */}
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex-1 border border-hairline bg-cream px-3 py-2">
+          <div className="font-mono-meta text-[0.65rem] text-slate">
+            {t("list.filter.loyer.min")}
+          </div>
+          <div className="font-display text-base leading-tight">
+            {formatEuro(lo)}
+          </div>
+        </div>
+        <span className="w-3 h-px bg-hairline shrink-0" />
+        <div className="flex-1 border border-hairline bg-cream px-3 py-2">
+          <div className="font-mono-meta text-[0.65rem] text-slate">
+            {t("list.filter.loyer.max")}
+          </div>
+          <div className="font-display text-base leading-tight">
+            {formatEuro(hi)}
+            {hi >= max ? "+" : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AppartementsList = () => {
   const { data: appartements = [], isLoading } = useAppartements();
   const { t } = useLang();
+  const [query, setQuery] = useState("");
   const [quartier, setQuartier] = useState("all");
   const [chambres, setChambres] = useState("all");
-  const [loyerMax, setLoyerMax] = useState("all");
   const [surfaceMin, setSurfaceMin] = useState("all");
+  const [loyerRange, setLoyerRange] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     document.title = t("list.title.tab");
@@ -110,8 +213,22 @@ const AppartementsList = () => {
     return Array.from(set).sort();
   }, [appartements]);
 
+  // Bornes du curseur de loyer, calculées sur les données (arrondies à 100 €).
+  const bounds = useMemo(() => {
+    const prices = appartements.map((a) => a.loyerNum).filter((n) => n > 0);
+    if (prices.length === 0) return { min: 0, max: 1000 };
+    const lo = Math.floor(Math.min(...prices) / 100) * 100;
+    const hi = Math.ceil(Math.max(...prices) / 100) * 100;
+    return { min: lo, max: hi > lo ? hi : lo + 100 };
+  }, [appartements]);
+
+  // Plage effective : ce que l'utilisateur a réglé, sinon les bornes complètes.
+  const loyer: [number, number] = loyerRange ?? [bounds.min, bounds.max];
+
   const filtered = useMemo(() => {
+    const [loyerLo, loyerHi] = loyerRange ?? [bounds.min, bounds.max];
     return appartements.filter((a) => {
+      if (!matchesSearch(a, query)) return false;
       if (quartier !== "all" && a.quartier !== quartier) return false;
       if (chambres !== "all") {
         const n = numFromString(a.chambres);
@@ -121,20 +238,27 @@ const AppartementsList = () => {
           return false;
         }
       }
-      if (loyerMax !== "all" && a.loyerNum > parseInt(loyerMax)) return false;
-      if (surfaceMin !== "all" && numFromString(a.surface) < parseInt(surfaceMin)) return false;
+      if (surfaceMin !== "all" && numFromString(a.surface) < parseInt(surfaceMin))
+        return false;
+      if (a.loyerNum < loyerLo || a.loyerNum > loyerHi) return false;
       return true;
     });
-  }, [appartements, quartier, chambres, loyerMax, surfaceMin]);
+  }, [appartements, query, quartier, chambres, surfaceMin, loyerRange, bounds]);
 
   const reset = () => {
+    setQuery("");
     setQuartier("all");
     setChambres("all");
-    setLoyerMax("all");
     setSurfaceMin("all");
+    setLoyerRange(null);
   };
   const hasFilters =
-    quartier !== "all" || chambres !== "all" || loyerMax !== "all" || surfaceMin !== "all";
+    query.trim() !== "" ||
+    quartier !== "all" ||
+    chambres !== "all" ||
+    surfaceMin !== "all" ||
+    (loyerRange !== null &&
+      (loyerRange[0] > bounds.min || loyerRange[1] < bounds.max));
 
   return (
     <main className="min-h-screen bg-cream text-ink">
@@ -149,7 +273,25 @@ const AppartementsList = () => {
 
       <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-10 md:mt-14">
         <div className="border border-hairline bg-cream-soft p-5 md:p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Recherche */}
+          <label className="block">
+            <span className="block font-mono-meta text-xs text-slate mb-1.5">
+              {t("list.search.label")}
+            </span>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate pointer-events-none" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("list.search.placeholder")}
+                className="w-full border border-hairline bg-cream pl-9 pr-3 py-2.5 font-mono-meta text-sm focus:outline-none focus:border-ink"
+              />
+            </div>
+          </label>
+
+          {/* Sélecteurs */}
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
             <Select
               label={t("list.filter.quartier")}
               value={quartier}
@@ -172,18 +314,6 @@ const AppartementsList = () => {
               ]}
             />
             <Select
-              label={t("list.filter.loyer")}
-              value={loyerMax}
-              onChange={setLoyerMax}
-              options={[
-                { value: "all", label: t("list.filter.loyer.all") },
-                { value: "3000", label: "≤ 3 000 €" },
-                { value: "5000", label: "≤ 5 000 €" },
-                { value: "8000", label: "≤ 8 000 €" },
-                { value: "12000", label: "≤ 12 000 €" },
-              ]}
-            />
-            <Select
               label={t("list.filter.surface")}
               value={surfaceMin}
               onChange={setSurfaceMin}
@@ -196,7 +326,23 @@ const AppartementsList = () => {
               ]}
             />
           </div>
-          <div className="mt-4 flex items-center justify-between font-mono-meta text-xs">
+
+          {/* Loyer — fourchette réglable */}
+          <div className="mt-5 max-w-xl">
+            <span className="block font-mono-meta text-xs text-slate mb-3">
+              {t("list.filter.loyer")}
+            </span>
+            <PriceRange
+              min={bounds.min}
+              max={bounds.max}
+              step={100}
+              value={loyer}
+              onChange={setLoyerRange}
+            />
+          </div>
+
+          {/* Résultats + réinitialisation */}
+          <div className="mt-6 flex items-center justify-between font-mono-meta text-xs">
             <span className="text-slate">
               {tFormat(
                 filtered.length > 1 ? t("list.results.many") : t("list.results.one"),

@@ -1,0 +1,68 @@
+/* Curseur de fourchette de loyer (deux poignées) — page /appartements.
+   Deux <input type="range"> superposés : l'input ne capte rien, seules
+   les poignées sont cliquables, pour pouvoir attraper l'une ou l'autre. */
+
+.vol-range {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.vol-range:focus {
+  outline: none;
+}
+
+/* Poignée — WebKit / Blink */
+.vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: hsl(39 33% 99%);
+  border: 1px solid hsl(218 12% 72%);
+  box-shadow: 0 2px 6px rgba(26, 29, 36, 0.22);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Poignée — Firefox */
+.vol-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: hsl(39 33% 99%);
+  border: 1px solid hsl(218 12% 72%);
+  box-shadow: 0 2px 6px rgba(26, 29, 36, 0.22);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Pistes natives masquées : on dessine la nôtre en arrière-plan. */
+.vol-range::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+}
+.vol-range::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+.vol-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid hsl(26 53% 51%);
+  outline-offset: 2px;
+}
+.vol-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid hsl(26 53% 51%);
+  outline-offset: 2px;
+}
