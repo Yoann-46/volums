@@ -101,6 +101,7 @@ export const PhotoManager = ({
       // de débit. Tolérant aux erreurs — une photo non classée reste réglable
       // à la main dans le menu « Pièce ».
       const BATCH = 6;
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
       let classified = 0;
       let done = 0;
       for (let k = 0; k < uploaded.length; k += BATCH) {
@@ -111,29 +112,39 @@ export const PhotoManager = ({
           total: uploaded.length,
           savedBytes,
         });
-        try {
-          const res = await fetch("/api/classify-room", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imageUrls: batch.map((p) => photoUrl(p.storage_path)),
-            }),
-          });
-          if (res.ok) {
-            const { rooms } = (await res.json()) as { rooms?: string[] };
-            if (Array.isArray(rooms) && rooms.length === batch.length) {
-              await Promise.all(
-                batch.map((p, idx) => {
-                  const room = rooms[idx];
-                  if (!room) return Promise.resolve();
-                  classified++;
-                  return updatePhoto(p.id, { room });
-                }),
-              );
+        // Jusqu'à 3 tentatives : sur 429 (limite de débit Gemini) on patiente
+        // puis on réessaie le lot. Tolérant aux erreurs sinon.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const res = await fetch("/api/classify-room", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                imageUrls: batch.map((p) => photoUrl(p.storage_path)),
+              }),
+            });
+            if (res.ok) {
+              const { rooms } = (await res.json()) as { rooms?: string[] };
+              if (Array.isArray(rooms) && rooms.length === batch.length) {
+                await Promise.all(
+                  batch.map((p, idx) => {
+                    const room = rooms[idx];
+                    if (!room) return Promise.resolve();
+                    classified++;
+                    return updatePhoto(p.id, { room });
+                  }),
+                );
+              }
+              break;
             }
+            if (res.status === 429 && attempt < 2) {
+              await sleep(25000);
+              continue;
+            }
+            break;
+          } catch {
+            break;
           }
-        } catch {
-          // Lot non classé → classement manuel possible dans le menu.
         }
         done += batch.length;
         setProgress({
