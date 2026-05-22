@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
-import { Heart, Share2, ArrowLeft } from "lucide-react";
+import { Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
 import { RoomGallery } from "@/components/volums/RoomGallery";
 import { useAppartement, useAppartements, pickStr, pickArr } from "@/data/queries";
@@ -78,50 +78,18 @@ const ApptDetail = () => {
         </div>
       </header>
 
-      {/* Title block */}
-      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-12 md:pt-16">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono-meta text-slate text-xs md:text-sm">
-          <span>{appt.arrondissement}</span>
-          <span className="text-hairline">·</span>
-          <span>{appt.quartier}</span>
-          <span className="text-hairline">·</span>
-          <span className="text-copper">{t("detail.ref")} {appt.ref}</span>
-        </div>
+      {/* Bloc principal — titre, description, photos, actions, infos */}
+      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-10 md:pt-16">
+        {/* 1 — Titre */}
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.02]">
+          {appt.name} <span className="italic-display">{appt.nameItalic}</span>
+        </h1>
 
-        <div className="mt-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          <div>
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.02]">
-              {appt.name} <span className="italic-display">{appt.nameItalic}</span>
-            </h1>
-            <p className="text-slate mt-4 max-w-2xl">{shortDescription}</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              aria-label={t("detail.save")}
-              className="w-11 h-11 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
-            >
-              <Heart className="w-4 h-4" />
-            </button>
-            <button
-              aria-label={t("detail.share")}
-              className="w-11 h-11 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-            <a
-              href="#booking"
-              className="inline-flex items-center gap-2 bg-ink text-cream px-5 sm:px-6 h-11 font-mono-meta text-sm hover:bg-copper transition-colors"
-            >
-              {t("detail.bookCta")}
-            </a>
-          </div>
-        </div>
-      </section>
+        {/* 2 — Description courte */}
+        <p className="text-slate mt-4 max-w-2xl">{shortDescription}</p>
 
-      {/* Gallery — carrousel plein cadre sur mobile, mosaïque sur desktop */}
-      <section className="mt-8 md:mt-14 md:mx-auto md:max-w-[1440px] md:px-12 lg:px-16">
-        {/* Mobile — carrousel swipeable */}
-        <div className="md:hidden relative">
+        {/* 3 — Photos : carrousel plein cadre mobile / mosaïque desktop */}
+        <div className="relative md:hidden -mx-6 mt-6">
           <div
             ref={heroRef}
             onScroll={onHeroScroll}
@@ -163,7 +131,7 @@ const ApptDetail = () => {
         </div>
 
         {/* Desktop — mosaïque */}
-        <div className="relative hidden md:grid md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden md:h-[480px] lg:h-[560px]">
+        <div className="relative hidden md:grid md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden md:h-[480px] lg:h-[560px] md:mt-8">
           <button
             type="button"
             onClick={() => openGallery(main.id)}
@@ -205,6 +173,31 @@ const ApptDetail = () => {
             </span>
             {tFormat(t("detail.gallery.showAll"), { n: appt.gallery.length })}
           </button>
+        </div>
+
+        {/* 4 — Actions : partage + réservation */}
+        <div className="mt-6 flex items-center gap-3">
+          <button
+            aria-label={t("detail.share")}
+            className="w-11 h-11 shrink-0 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+          <a
+            href="#booking"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 bg-ink text-cream h-11 px-3 md:px-6 font-mono-meta text-[0.65rem] md:text-sm whitespace-nowrap hover:bg-copper transition-colors"
+          >
+            {t("detail.bookCta")}
+          </a>
+        </div>
+
+        {/* 5 — Localisation / référence */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono-meta text-slate text-xs md:text-sm">
+          <span>{appt.arrondissement}</span>
+          <span className="text-hairline">·</span>
+          <span>{appt.quartier}</span>
+          <span className="text-hairline">·</span>
+          <span className="text-copper">{t("detail.ref")} {appt.ref}</span>
         </div>
       </section>
 
