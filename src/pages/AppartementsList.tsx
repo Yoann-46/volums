@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { Wordmark } from "@/components/volums/Logo";
+import { Nav } from "@/components/volums/Nav";
 import { useAppartements, pickStr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
 import { useLang } from "@/i18n/LangContext";
-import { LangToggle } from "@/i18n/LangToggle";
 import { tFormat } from "@/i18n/translations";
 import type { Appt } from "@/data/types";
 
@@ -140,24 +138,9 @@ const AppartementsList = () => {
 
   return (
     <main className="min-h-screen bg-cream text-ink">
-      <header className="sticky top-0 z-40 bg-cream/85 backdrop-blur-md border-b border-hairline">
-        <div className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 py-4 flex items-center justify-between">
-          <Link to="/" aria-label={t("nav.home")} className="text-ink">
-            <Wordmark />
-          </Link>
-          <div className="flex items-center gap-6">
-            <LangToggle variant="ink" />
-            <Link
-              to="/"
-              className="font-mono-meta text-slate hover:text-ink inline-flex items-center gap-2"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> {t("list.headerBack")}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Nav />
 
-      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-12 md:pt-16">
+      <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 pt-28 md:pt-32">
         <span className="font-mono-meta text-copper">{t("list.eyebrow")}</span>
         <h1 className="font-display text-4xl md:text-5xl lg:text-6xl mt-4 leading-[1.05] max-w-3xl">
           {t("list.title.l1")} <span className="italic-display">{t("list.title.l2")}</span>
