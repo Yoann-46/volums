@@ -97,13 +97,17 @@ export const PhotoManager = ({
       refresh();
 
       // Classement automatique par pièce (Gemini Vision, via /api/classify-room).
-      // Séquentiel pour respecter la limite de débit ; tolérant aux erreurs —
-      // une photo non classée reste réglable à la main dans le menu « Pièce ».
+      // Par lots : un seul appel pour plusieurs photos → reste sous la limite
+      // de débit. Tolérant aux erreurs — une photo non classée reste réglable
+      // à la main dans le menu « Pièce ».
+      const BATCH = 6;
       let classified = 0;
-      for (let j = 0; j < uploaded.length; j++) {
+      let done = 0;
+      for (let k = 0; k < uploaded.length; k += BATCH) {
+        const batch = uploaded.slice(k, k + BATCH);
         setProgress({
           phase: "classify",
-          current: j,
+          current: done,
           total: uploaded.length,
           savedBytes,
         });
@@ -111,25 +115,40 @@ export const PhotoManager = ({
           const res = await fetch("/api/classify-room", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageUrl: photoUrl(uploaded[j].storage_path) }),
+            body: JSON.stringify({
+              imageUrls: batch.map((p) => photoUrl(p.storage_path)),
+            }),
           });
           if (res.ok) {
-            const { room } = (await res.json()) as { room?: string };
-            if (room) {
-              await updatePhoto(uploaded[j].id, { room });
-              classified++;
+            const { rooms } = (await res.json()) as { rooms?: string[] };
+            if (Array.isArray(rooms) && rooms.length === batch.length) {
+              await Promise.all(
+                batch.map((p, idx) => {
+                  const room = rooms[idx];
+                  if (!room) return Promise.resolve();
+                  classified++;
+                  return updatePhoto(p.id, { room });
+                }),
+              );
             }
           }
         } catch {
-          // Échec réseau / fonction indisponible → classement manuel possible.
+          // Lot non classé → classement manuel possible dans le menu.
         }
+        done += batch.length;
+        setProgress({
+          phase: "classify",
+          current: done,
+          total: uploaded.length,
+          savedBytes,
+        });
       }
       if (classified > 0) {
         toast.success(
           `${classified}/${uploaded.length} photo(s) classée(s) automatiquement`,
         );
-        refresh();
       }
+      refresh();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
     } finally {

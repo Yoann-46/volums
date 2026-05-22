@@ -1,8 +1,9 @@
-// Fonction serverless Vercel — classe une photo d'appartement par pièce
+// Fonction serverless Vercel — classe des photos d'appartement par pièce
 // via Google Gemini Vision. La clé API reste côté serveur (jamais exposée).
-// Signature Web standard : Vercel route la requête vers POST() / GET().
+// Classement PAR LOTS : un seul appel Gemini pour plusieurs photos, afin
+// de rester sous la limite de débit du palier gratuit.
 
-export const config = { maxDuration: 25 };
+export const config = { maxDuration: 60 };
 
 const ROOMS = [
   "salon",
@@ -16,9 +17,10 @@ const ROOMS = [
   "autre",
 ];
 
-const PROMPT = `Tu classes une photo d'intérieur d'un appartement parisien dans UNE seule catégorie de pièce.
-Réponds STRICTEMENT par un seul de ces mots, sans rien d'autre :
-salon, salle_a_manger, cuisine, chambre, sdb, entree, bureau, exterieur, autre
+const PROMPT = `Tu reçois plusieurs photos d'intérieur d'un même appartement parisien, dans l'ordre.
+Classe CHAQUE photo par type de pièce.
+Réponds par un tableau JSON de chaînes, une valeur par photo, dans le même ordre.
+Valeurs possibles : salon, salle_a_manger, cuisine, chambre, sdb, entree, bureau, exterieur, autre.
 
 Indices :
 - salon : pièce de vie avec un canapé
@@ -42,31 +44,29 @@ const json = (data: unknown, status = 200): Response =>
     headers: { "content-type": "application/json" },
   });
 
-// Requête Gemini avec un retry sur 429 (limite de débit du palier gratuit).
+type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
+
+// Requête Gemini avec retries sur 429 (limite de débit du palier gratuit).
 async function callGemini(
   apiKey: string,
-  mime: string,
-  base64: string,
+  parts: Part[],
 ): Promise<Response | null> {
   const body = JSON.stringify({
-    contents: [
-      {
-        parts: [
-          { text: PROMPT },
-          { inline_data: { mime_type: mime, data: base64 } },
-        ],
-      },
-    ],
-    generationConfig: { temperature: 0, maxOutputTokens: 256 },
+    contents: [{ parts }],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: "application/json",
+      responseSchema: { type: "ARRAY", items: { type: "STRING", enum: ROOMS } },
+    },
   });
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
       body,
     });
-    if (res.status === 429 && attempt === 0) {
-      await sleep(3000);
+    if (res.status === 429 && attempt < 2) {
+      await sleep(4000 * (attempt + 1));
       continue;
     }
     return res;
@@ -78,24 +78,37 @@ export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return json({ error: "GEMINI_API_KEY non configurée" }, 500);
 
-  let imageUrl: string | undefined;
+  let imageUrls: string[] = [];
   try {
-    const body = (await request.json()) as { imageUrl?: string };
-    imageUrl = body?.imageUrl;
+    const body = (await request.json()) as { imageUrls?: unknown };
+    if (Array.isArray(body?.imageUrls)) {
+      imageUrls = body.imageUrls.filter((u): u is string => typeof u === "string");
+    }
   } catch {
     // Corps absent ou non-JSON.
   }
-  if (!imageUrl || typeof imageUrl !== "string") {
-    return json({ error: "imageUrl requis" }, 400);
-  }
+  if (imageUrls.length === 0) return json({ error: "imageUrls requis" }, 400);
 
   try {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) return json({ error: "Image inaccessible" }, 502);
-    const mime = imgRes.headers.get("content-type") || "image/jpeg";
-    const base64 = Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+    // Récupère toutes les images du lot en parallèle.
+    const images = await Promise.all(
+      imageUrls.map(async (url) => {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`Image inaccessible (${r.status})`);
+        const mime = r.headers.get("content-type") || "image/jpeg";
+        const data = Buffer.from(await r.arrayBuffer()).toString("base64");
+        return { mime, data };
+      }),
+    );
 
-    const geminiRes = await callGemini(apiKey, mime, base64);
+    const parts: Part[] = [
+      { text: PROMPT },
+      ...images.map((im) => ({
+        inline_data: { mime_type: im.mime, data: im.data },
+      })),
+    ];
+
+    const geminiRes = await callGemini(apiKey, parts);
     if (!geminiRes) return json({ error: "Limite de débit Gemini" }, 429);
     if (!geminiRes.ok) {
       const detail = (await geminiRes.text()).slice(0, 200);
@@ -108,14 +121,20 @@ export async function POST(request: Request): Promise<Response> {
     const data = (await geminiRes.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
-    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || "")
-      .trim()
-      .toLowerCase();
-    const room =
-      ROOMS.find((r) => text === r) ??
-      ROOMS.find((r) => text.includes(r)) ??
-      "autre";
-    return json({ room });
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || "[]")
+      .replace(/```json|```/g, "")
+      .trim();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = [];
+    }
+    const rooms = (Array.isArray(parsed) ? parsed : []).map((v) => {
+      const s = String(v).trim().toLowerCase();
+      return ROOMS.includes(s) ? s : "autre";
+    });
+    return json({ rooms });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Erreur" }, 500);
   }
