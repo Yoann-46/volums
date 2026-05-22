@@ -58,7 +58,7 @@ export const Contact = () => {
 
           <a
             href="mailto:hello@volums.fr"
-            className="mt-12 inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 font-mono-meta hover:bg-copper transition-colors w-fit"
+            className="mt-12 inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 rounded-xl font-mono-meta hover:bg-copper transition-colors w-fit"
           >
             {t("contact.cta")}
             <span aria-hidden>→</span>

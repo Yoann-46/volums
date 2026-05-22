@@ -40,7 +40,7 @@ const Card = ({ a }: { a: Appt }) => {
   return (
     <Link
       to={`/appartements/${a.slug}`}
-      className="group bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
+      className="group bg-cream-soft border border-hairline block rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-ink"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-ink/5">
         {a.image ? (
@@ -101,7 +101,7 @@ const FilterSelect = ({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`h-9 shrink-0 pl-3 pr-7 border font-mono-meta text-xs cursor-pointer focus:outline-none transition-colors ${
+      className={`h-9 shrink-0 pl-3 pr-7 border rounded-xl font-mono-meta text-xs cursor-pointer focus:outline-none transition-colors ${
         active
           ? "border-ink bg-ink text-cream"
           : "border-hairline bg-cream-soft text-ink hover:border-ink"
@@ -172,7 +172,7 @@ const PriceFilter = ({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`h-9 shrink-0 px-3.5 border font-mono-meta text-xs whitespace-nowrap transition-colors ${
+        className={`h-9 shrink-0 px-3.5 border rounded-xl font-mono-meta text-xs whitespace-nowrap transition-colors ${
           active
             ? "border-ink bg-ink text-cream"
             : "border-hairline bg-cream-soft text-ink hover:border-ink"
@@ -189,7 +189,7 @@ const PriceFilter = ({
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-cream border border-hairline w-[360px] max-w-full p-5"
+            className="bg-cream border border-hairline rounded-xl w-[360px] max-w-full p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
@@ -205,7 +205,7 @@ const PriceFilter = ({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label={t("list.filter.loyer.close")}
-                className="w-8 h-8 shrink-0 flex items-center justify-center border border-hairline hover:bg-ink hover:text-cream transition-colors"
+                className="w-8 h-8 shrink-0 flex items-center justify-center border border-hairline rounded-xl hover:bg-ink hover:text-cream transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -272,7 +272,7 @@ const PriceFilter = ({
 
             {/* Valeurs */}
             <div className="mt-7 flex items-center gap-3">
-              <div className="flex-1 border border-hairline bg-cream-soft px-3 py-2">
+              <div className="flex-1 border border-hairline rounded-xl bg-cream-soft px-3 py-2">
                 <div className="font-mono-meta text-[0.6rem] text-slate">
                   {t("list.filter.loyer.min")}
                 </div>
@@ -281,7 +281,7 @@ const PriceFilter = ({
                 </div>
               </div>
               <span className="w-3 h-px bg-hairline shrink-0" />
-              <div className="flex-1 border border-hairline bg-cream-soft px-3 py-2">
+              <div className="flex-1 border border-hairline rounded-xl bg-cream-soft px-3 py-2">
                 <div className="font-mono-meta text-[0.6rem] text-slate">
                   {t("list.filter.loyer.max")}
                 </div>
@@ -295,7 +295,7 @@ const PriceFilter = ({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="mt-5 w-full bg-ink text-cream py-2.5 font-mono-meta text-sm hover:bg-copper transition-colors"
+              className="mt-5 w-full bg-ink text-cream py-2.5 rounded-xl font-mono-meta text-sm hover:bg-copper transition-colors"
             >
               {t("list.filter.loyer.apply")}
             </button>
@@ -397,7 +397,7 @@ const AppartementsList = () => {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("list.search.placeholder")}
               aria-label={t("list.search.label")}
-              className="h-9 w-full border border-hairline bg-cream-soft pl-8 pr-3 font-mono-meta text-xs focus:outline-none focus:border-ink"
+              className="h-9 w-full border border-hairline rounded-xl bg-cream-soft pl-8 pr-3 font-mono-meta text-xs focus:outline-none focus:border-ink"
             />
           </div>
           <FilterSelect
@@ -461,15 +461,15 @@ const AppartementsList = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[4/3] bg-ink/5 animate-pulse" />
+              <div key={i} className="aspect-[4/3] bg-ink/5 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="border border-hairline bg-cream-soft p-12 text-center">
+          <div className="border border-hairline rounded-xl bg-cream-soft p-12 text-center">
             <p className="font-display text-xl">{t("list.empty")}</p>
             <button
               onClick={reset}
-              className="mt-6 inline-flex items-center gap-2 bg-ink text-cream px-5 py-3 font-mono-meta hover:bg-copper transition-colors"
+              className="mt-6 inline-flex items-center gap-2 bg-ink text-cream px-5 py-3 rounded-xl font-mono-meta hover:bg-copper transition-colors"
             >
               {t("list.empty.reset")}
             </button>

@@ -120,7 +120,7 @@ export const RoomGallery = ({
             type="button"
             onClick={onClose}
             aria-label={t("gallery.close")}
-            className="w-9 h-9 flex items-center justify-center border border-hairline hover:bg-ink hover:text-cream transition-colors"
+            className="w-9 h-9 flex items-center justify-center border border-hairline rounded-xl hover:bg-ink hover:text-cream transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -168,7 +168,7 @@ export const RoomGallery = ({
                   <button
                     type="button"
                     onClick={() => setLightbox(flat.findIndex((p) => p === first))}
-                    className="block w-full aspect-[16/10] overflow-hidden rounded-2xl bg-ink/5 mb-2.5 group"
+                    className="block w-full aspect-[16/10] overflow-hidden rounded-xl bg-ink/5 mb-2.5 group"
                   >
                     <img
                       src={first.src}

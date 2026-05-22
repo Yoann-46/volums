@@ -77,7 +77,7 @@ export const Nav = () => {
           <div className="hidden md:flex items-center gap-6">
             <button
               onClick={() => goToSection("contact")}
-              className="inline-flex items-center gap-2 border border-cream/40 px-5 py-2.5 font-mono-meta text-cream hover:bg-cream hover:text-ink transition-colors"
+              className="inline-flex items-center gap-2 border border-cream/40 px-5 py-2.5 rounded-xl font-mono-meta text-cream hover:bg-cream hover:text-ink transition-colors"
             >
               {t("nav.contactCta")}
             </button>
@@ -90,7 +90,7 @@ export const Nav = () => {
             <button
               onClick={() => setOpen(true)}
               aria-label={t("nav.openMenu")}
-              className="w-10 h-10 flex items-center justify-center border border-cream/30"
+              className="w-10 h-10 flex items-center justify-center border border-cream/30 rounded-xl"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -110,7 +110,7 @@ export const Nav = () => {
               <button
                 onClick={() => setOpen(false)}
                 aria-label={t("nav.closeMenu")}
-                className="w-10 h-10 flex items-center justify-center border border-cream/30"
+                className="w-10 h-10 flex items-center justify-center border border-cream/30 rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -141,7 +141,7 @@ export const Nav = () => {
           <div className="p-6">
             <button
               onClick={() => goToSection("contact")}
-              className="block w-full text-center bg-cream text-ink py-4 font-mono-meta"
+              className="block w-full text-center bg-cream text-ink py-4 rounded-xl font-mono-meta"
             >
               {t("nav.contactCta")}
             </button>
