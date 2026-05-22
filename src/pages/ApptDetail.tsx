@@ -118,7 +118,7 @@ const ApptDetail = () => {
           <button
             type="button"
             onClick={() => openGallery()}
-            className="absolute bottom-3 left-3 inline-flex items-center gap-2 bg-cream/95 text-ink px-3 py-2 font-mono-meta text-xs shadow-sm"
+            className="absolute bottom-3 left-3 inline-flex items-center gap-2 bg-cream/95 text-ink px-3 py-2 rounded-xl font-mono-meta text-xs shadow-sm"
           >
             <span className="grid grid-cols-2 gap-0.5">
               <span className="w-1.5 h-1.5 bg-current" />
@@ -131,7 +131,7 @@ const ApptDetail = () => {
         </div>
 
         {/* Desktop — mosaïque */}
-        <div className="relative hidden md:grid md:grid-cols-4 grid-rows-2 gap-2 rounded-sm overflow-hidden md:h-[480px] lg:h-[560px] md:mt-8">
+        <div className="relative hidden md:grid md:grid-cols-4 grid-rows-2 gap-2 rounded-xl overflow-hidden md:h-[480px] lg:h-[560px] md:mt-8">
           <button
             type="button"
             onClick={() => openGallery(main.id)}
@@ -163,7 +163,7 @@ const ApptDetail = () => {
           <button
             type="button"
             onClick={() => openGallery()}
-            className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-cream text-ink border border-ink px-4 py-2 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
+            className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-cream text-ink border border-ink px-4 py-2 rounded-xl font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
           >
             <span className="grid grid-cols-2 gap-0.5">
               <span className="w-1.5 h-1.5 bg-current" />
@@ -179,13 +179,13 @@ const ApptDetail = () => {
         <div className="mt-6 flex items-center gap-3">
           <button
             aria-label={t("detail.share")}
-            className="w-11 h-11 shrink-0 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+            className="w-11 h-11 shrink-0 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
           >
             <Share2 className="w-4 h-4" />
           </button>
           <a
             href="#booking"
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 bg-ink text-cream h-11 px-3 md:px-6 font-mono-meta text-[0.65rem] md:text-sm whitespace-nowrap hover:bg-copper transition-colors"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 bg-ink text-cream h-11 px-3 md:px-6 rounded-xl font-mono-meta text-[0.65rem] md:text-sm whitespace-nowrap hover:bg-copper transition-colors"
           >
             {t("detail.bookCta")}
           </a>
@@ -216,7 +216,7 @@ const ApptDetail = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-hairline border border-hairline mt-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-hairline border border-hairline rounded-xl overflow-hidden mt-12">
             <Stat label={t("detail.stats.surface")} value={appt.surface} />
             <Stat label={t("detail.stats.chambres")} value={appt.chambres} />
             <Stat label={t("detail.stats.sdb")} value={appt.sdb} />
@@ -247,7 +247,7 @@ const ApptDetail = () => {
         <aside className="lg:col-span-5">
           <div
             id="booking"
-            className="lg:sticky lg:top-8 border border-hairline bg-cream-soft p-7 md:p-8"
+            className="lg:sticky lg:top-8 border border-hairline bg-cream-soft p-7 md:p-8 rounded-xl"
           >
             <span className="font-mono-meta text-slate">{t("detail.book.from")}</span>
             <div className="mt-2 flex items-baseline gap-3">
@@ -256,7 +256,7 @@ const ApptDetail = () => {
             </div>
             <div className="mt-1 font-mono-meta text-slate">{t("detail.book.allInc")}</div>
 
-            <div className="mt-7 border border-hairline">
+            <div className="mt-7 border border-hairline rounded-xl">
               <Field label={t("detail.book.availFrom")} value={dispo} />
             </div>
             <p className="mt-3 font-mono-meta text-slate">
@@ -271,7 +271,7 @@ const ApptDetail = () => {
 
             <a
               href="mailto:contact@volums.fr"
-              className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-ink text-cream py-3.5 font-mono-meta hover:bg-copper transition-colors"
+              className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-ink text-cream py-3.5 rounded-xl font-mono-meta hover:bg-copper transition-colors"
             >
               {t("detail.bookCta")}
             </a>
@@ -304,7 +304,7 @@ const ApptDetail = () => {
               <Link
                 key={a.slug}
                 to={`/appartements/${a.slug}`}
-                className="group block bg-cream-soft border border-hairline lift"
+                className="group block bg-cream-soft border border-hairline rounded-xl overflow-hidden lift"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-ink/5">
                   <img

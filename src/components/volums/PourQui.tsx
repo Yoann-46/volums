@@ -44,7 +44,7 @@ export const PourQui = () => {
           {audiences.map(({ tag, Icon, title, body, bullets }) => (
             <div key={tag} className="py-12 md:py-0 md:px-12 first:md:pl-0 last:md:pr-0">
               <div className="flex items-center gap-5">
-                <div className="inline-flex w-14 h-14 shrink-0 items-center justify-center border border-ink/40">
+                <div className="inline-flex w-14 h-14 shrink-0 items-center justify-center border border-ink/40 rounded-xl">
                   <Icon className="w-6 h-6" strokeWidth={1.4} />
                 </div>
                 <span className="font-mono-meta text-copper">— {tag}</span>

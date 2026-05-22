@@ -16,7 +16,7 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => {
   return (
     <Link
       to={`/appartements/${a.slug}`}
-      className="group lift bg-cream-soft border border-hairline block focus:outline-none focus:ring-2 focus:ring-ink"
+      className="group lift bg-cream-soft border border-hairline block rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-ink"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-ink/5">
         <img
@@ -49,7 +49,7 @@ const Card = ({ a, idx }: { a: Appt; idx: number }) => {
           <Stat tKey="appartements.card.min" value={minStay} small />
         </div>
 
-        <div className="mt-5 flex items-end justify-between bg-ink text-cream p-4">
+        <div className="mt-5 flex items-end justify-between bg-ink text-cream p-4 rounded-xl">
           <div>
             <span className="font-mono-meta text-cream/60 text-xs">
               {t("appartements.card.rent")}
@@ -120,7 +120,7 @@ export const Appartements = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
             {[0, 1].map((i) => (
-              <div key={i} className="aspect-[16/10] bg-ink/5 animate-pulse" />
+              <div key={i} className="aspect-[16/10] bg-ink/5 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
@@ -134,7 +134,7 @@ export const Appartements = () => {
               <div className="mt-12 md:mt-16 flex justify-center">
                 <Link
                   to="/appartements"
-                  className="inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 font-mono-meta hover:bg-copper transition-colors"
+                  className="inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 rounded-xl font-mono-meta hover:bg-copper transition-colors"
                 >
                   {tFormat(t("appartements.seeAll"), { n: appartements.length })}
                   <span aria-hidden>→</span>

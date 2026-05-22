@@ -20,14 +20,14 @@ export const Hero = () => {
             <div className="mt-12 flex flex-wrap gap-4">
               <a
                 href="#appartements"
-                className="inline-flex items-center gap-3 bg-cream text-ink px-7 py-4 font-mono-meta hover:bg-copper hover:text-cream transition-colors"
+                className="inline-flex items-center gap-3 bg-cream text-ink px-7 py-4 rounded-xl font-mono-meta hover:bg-copper hover:text-cream transition-colors"
               >
                 {t("hero.ctaList")}
                 <span aria-hidden>→</span>
               </a>
               <a
                 href="#contact"
-                className="inline-flex items-center gap-3 border border-cream/40 text-cream px-7 py-4 font-mono-meta hover:bg-cream hover:text-ink transition-colors"
+                className="inline-flex items-center gap-3 border border-cream/40 text-cream px-7 py-4 rounded-xl font-mono-meta hover:bg-cream hover:text-ink transition-colors"
               >
                 {t("hero.ctaContact")}
               </a>
