@@ -18,11 +18,13 @@ const ROOM_OPTIONS: { value: string; label: string }[] = [
   { value: "salon", label: "Salon" },
   { value: "salle_a_manger", label: "Salle à manger" },
   { value: "cuisine", label: "Cuisine" },
+  { value: "chambre", label: "Chambre" },
   { value: "chambre:1", label: "Chambre 1" },
   { value: "chambre:2", label: "Chambre 2" },
   { value: "chambre:3", label: "Chambre 3" },
   { value: "chambre:4", label: "Chambre 4" },
   { value: "chambre:5", label: "Chambre 5" },
+  { value: "sdb", label: "Salle de bains" },
   { value: "sdb:1", label: "Salle de bains 1" },
   { value: "sdb:2", label: "Salle de bains 2" },
   { value: "sdb:3", label: "Salle de bains 3" },
@@ -111,6 +113,18 @@ export const PhotoManager = ({
   const onSetCover = async (id: string) => {
     try {
       await setCoverPhoto(propertyId, id);
+      // La photo de couverture remonte en 1re position de la liste.
+      const cover = photos.find((p) => p.id === id);
+      if (cover) {
+        const reordered = [cover, ...photos.filter((p) => p.id !== id)];
+        await Promise.all(
+          reordered.map((p, i) =>
+            p.sort_order !== i
+              ? updatePhoto(p.id, { sort_order: i })
+              : Promise.resolve(),
+          ),
+        );
+      }
       toast.success("Photo principale définie");
       refresh();
     } catch (e: unknown) {
