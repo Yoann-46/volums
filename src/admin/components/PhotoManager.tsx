@@ -48,7 +48,6 @@ export const PhotoManager = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<{
-    phase: "upload" | "classify";
     current: number;
     total: number;
     savedBytes: number;
@@ -69,94 +68,27 @@ export const PhotoManager = ({
     if (!files || files.length === 0) return;
     setUploading(true);
     const list = Array.from(files);
-    setProgress({ phase: "upload", current: 0, total: list.length, savedBytes: 0 });
+    setProgress({ current: 0, total: list.length, savedBytes: 0 });
     let savedBytes = 0;
-    const uploaded: { id: string; storage_path: string }[] = [];
     try {
       const start = photos.length;
       let i = 0;
       for (const f of list) {
-        setProgress({ phase: "upload", current: i + 1, total: list.length, savedBytes });
+        setProgress({ current: i + 1, total: list.length, savedBytes });
         // Compression côté navigateur AVANT upload (max 2000 px, JPEG q=0.82).
         const { file, originalSize, finalSize } = await compressImage(f);
         savedBytes += Math.max(0, originalSize - finalSize);
         const order = start + i;
         const label = String(order + 1).padStart(2, "0");
-        const photo = (await uploadPhoto(propertyId, file, {
-          label,
-          caption: "",
-          sort_order: order,
-        })) as { id: string; storage_path: string };
-        uploaded.push({ id: photo.id, storage_path: photo.storage_path });
+        await uploadPhoto(propertyId, file, { label, caption: "", sort_order: order });
         i++;
-        setProgress({ phase: "upload", current: i, total: list.length, savedBytes });
+        setProgress({ current: i, total: list.length, savedBytes });
       }
       toast.success(
         savedBytes > 0
           ? `${list.length} photo(s) — ${formatBytes(savedBytes)} économisés`
           : `${list.length} photo(s) uploadée(s)`,
       );
-      refresh();
-
-      // Classement automatique par pièce (Gemini Vision, via /api/classify-room).
-      // Par lots : un seul appel pour plusieurs photos → reste sous la limite
-      // de débit. Tolérant aux erreurs — une photo non classée reste réglable
-      // à la main dans le menu « Pièce ».
-      const BATCH = 6;
-      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      type Up = { id: string; storage_path: string };
-      const batches: Up[][] = [];
-      for (let k = 0; k < uploaded.length; k += BATCH) {
-        batches.push(uploaded.slice(k, k + BATCH));
-      }
-      let classified = 0;
-      let done = 0;
-
-      // Classe un lot en UN seul appel. Renvoie true si réussi.
-      const classifyBatch = async (batch: Up[]): Promise<boolean> => {
-        try {
-          const res = await fetch("/api/classify-room", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imageUrls: batch.map((p) => photoUrl(p.storage_path)),
-            }),
-          });
-          if (!res.ok) return false;
-          const { rooms } = (await res.json()) as { rooms?: string[] };
-          if (!Array.isArray(rooms) || rooms.length !== batch.length) return false;
-          await Promise.all(
-            batch.map((p, idx) => updatePhoto(p.id, { room: rooms[idx] })),
-          );
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
-      // 1er passage — un lot toutes les ~7 s, pour rester sous la limite Gemini.
-      const failed: Up[][] = [];
-      for (let b = 0; b < batches.length; b++) {
-        if (b > 0) await sleep(7000);
-        setProgress({ phase: "classify", current: done, total: uploaded.length, savedBytes });
-        if (await classifyBatch(batches[b])) classified += batches[b].length;
-        else failed.push(batches[b]);
-        done += batches[b].length;
-        setProgress({ phase: "classify", current: done, total: uploaded.length, savedBytes });
-      }
-      // Une seule passe de rattrapage pour les lots éventuellement ratés.
-      if (failed.length > 0) {
-        await sleep(35000);
-        for (let b = 0; b < failed.length; b++) {
-          if (b > 0) await sleep(7000);
-          if (await classifyBatch(failed[b])) classified += failed[b].length;
-        }
-      }
-      if (classified > 0) {
-        toast.success(
-          `${classified}/${uploaded.length} photo(s) classée(s) automatiquement`,
-        );
-      }
       refresh();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
@@ -263,9 +195,7 @@ export const PhotoManager = ({
           <Upload className="w-4 h-4" />{" "}
           {uploading
             ? progress
-              ? progress.phase === "classify"
-                ? `Classement ${progress.current}/${progress.total}…`
-                : `Compression & upload ${progress.current}/${progress.total}…`
+              ? `Compression & upload ${progress.current}/${progress.total}…`
               : "Upload…"
             : "Ajouter des photos"}
         </button>
