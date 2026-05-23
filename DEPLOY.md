@@ -14,8 +14,18 @@
 
 ### b) Créer le schéma
 1. Dans Supabase, menu de gauche → **SQL Editor** → **New query**.
-2. Ouvrir le fichier [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) du repo, copier tout le contenu, le coller dans l'éditeur Supabase, cliquer **Run**.
-3. Faire pareil avec [`supabase/migrations/0002_seed.sql`](supabase/migrations/0002_seed.sql) (les 4 appartements existants).
+2. Exécuter dans l'ordre **tous les fichiers** de [`supabase/migrations/`](supabase/migrations/) — copier-coller le contenu de chacun dans l'éditeur Supabase et cliquer **Run** :
+
+   | Fichier | Effet |
+   |---|---|
+   | `0001_init.sql` | Tables `properties` + `property_photos` + bucket `property-photos` public |
+   | `0002_seed.sql` | 4 appartements d'exemple (optionnel si tu vas tout réimporter) |
+   | `0003_simplify.sql` | Retire quelques colonnes non utilisées |
+   | `0004_import.sql` | Premier import en masse (28 appartements) |
+   | `0005_i18n.sql` | Colonnes EN sur `properties` (i18n) |
+   | `0006_bookings.sql` | Table `bookings` (réservations) |
+   | `0007_import2.sql` | Deuxième import (18 appartements de plus) |
+   | `0008_photo_rooms.sql` | Colonnes `room` + `room_index` sur `property_photos` (galerie par pièce) |
 
 ### c) Créer ton compte admin
 1. Menu de gauche → **Authentication** → **Users** → **Add user** → **Create new user**.
