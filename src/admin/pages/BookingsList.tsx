@@ -17,6 +17,24 @@ const nights = (a: string, b: string) => {
   return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon",
+  sent: "Lien envoyé",
+  deposit_paid: "Acompte payé",
+  paid_full: "Soldé",
+  completed: "Terminé",
+  cancelled: "Annulée",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-slate/20 text-slate",
+  sent: "bg-amber-100 text-amber-900",
+  deposit_paid: "bg-blue-100 text-blue-900",
+  paid_full: "bg-emerald-100 text-emerald-900",
+  completed: "bg-slate/10 text-slate",
+  cancelled: "bg-red-100 text-red-900",
+};
+
 const BookingsList = () => {
   const qc = useQueryClient();
   const { data: items = [], isLoading } = useQuery({
@@ -74,24 +92,34 @@ const BookingsList = () => {
       ) : (
         <div className="border border-hairline bg-cream-soft">
           <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-hairline font-mono-meta text-xs text-slate">
-            <span className="col-span-2">Booking ID</span>
+            <span className="col-span-2">Booking ID · Statut</span>
             <span className="col-span-2">Locataire</span>
             <span className="col-span-3">Appartement</span>
-            <span className="col-span-3">Séjour</span>
-            <span className="col-span-1">Total</span>
+            <span className="col-span-2">Séjour</span>
+            <span className="col-span-2">Total · Paiement</span>
             <span className="col-span-1 text-right">Actions</span>
           </div>
           {items.map((b) => {
             const prop = (b as { property?: { name?: string; name_italic?: string; ref?: string } }).property;
             const propLabel = prop ? `${prop.name ?? ""} ${prop.name_italic ?? ""}` : "—";
             const n = nights(b.check_in, b.check_out);
+            const status = (b as { status?: string }).status ?? "draft";
+            const depositStatus = (b as { deposit_status?: string }).deposit_status ?? "pending";
+            const balanceStatus = (b as { balance_status?: string }).balance_status ?? "pending";
             return (
               <div
                 key={b.id}
                 className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-5 py-4 border-b border-hairline last:border-b-0 items-center"
               >
                 <div className="md:col-span-2 font-mono-meta text-sm">
-                  <span className="text-copper">{b.booking_id}</span>
+                  <div className="text-copper">{b.booking_id}</div>
+                  <div className="mt-1">
+                    <span
+                      className={`inline-block px-2 py-0.5 font-mono-meta text-[10px] ${STATUS_COLORS[status] ?? "bg-slate/20 text-slate"}`}
+                    >
+                      {STATUS_LABELS[status] ?? status}
+                    </span>
+                  </div>
                 </div>
                 <div className="md:col-span-2 font-display text-lg">{b.guest_name}</div>
                 <div className="md:col-span-3">
@@ -100,7 +128,7 @@ const BookingsList = () => {
                     <div className="font-mono-meta text-xs text-slate mt-0.5">Réf {prop.ref}</div>
                   )}
                 </div>
-                <div className="md:col-span-3 text-sm">
+                <div className="md:col-span-2 text-sm">
                   <div>
                     {formatDate(b.check_in)} → {formatDate(b.check_out)}
                   </div>
@@ -108,8 +136,18 @@ const BookingsList = () => {
                     {n} nuit{n > 1 ? "s" : ""}
                   </div>
                 </div>
-                <div className="md:col-span-1 font-display">
-                  {b.total_amount !== null ? formatEuro(b.total_amount) : "—"}
+                <div className="md:col-span-2">
+                  <div className="font-display">
+                    {b.total_amount !== null ? formatEuro(b.total_amount) : "—"}
+                  </div>
+                  <div className="font-mono-meta text-xs text-slate mt-0.5 flex items-center gap-2">
+                    <span title={`Acompte : ${depositStatus === "paid" ? "payé" : "en attente"}`}>
+                      A {depositStatus === "paid" ? "✓" : "⏳"}
+                    </span>
+                    <span title={`Solde : ${balanceStatus === "paid" ? "payé" : "en attente"}`}>
+                      S {balanceStatus === "paid" ? "✓" : "⏳"}
+                    </span>
+                  </div>
                 </div>
                 <div className="md:col-span-1 flex items-center justify-end gap-2">
                   <button
