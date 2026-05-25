@@ -1,5 +1,16 @@
 {
   "rewrites": [
+    {
+      "source": "/appartements/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|whatsapp|twitterbot|linkedinbot|slackbot|telegrambot|discordbot|pinterestbot|skypeuripreview|googlebot|bingbot|applebot|redditbot|embedly|quora|outbrain|vkshare|w3c_validator|preview).*"
+        }
+      ],
+      "destination": "/api/og?slug=:slug"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
