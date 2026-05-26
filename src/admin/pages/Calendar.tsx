@@ -328,16 +328,13 @@ const Calendar = () => {
       >
         {/* Header sticky (mois + jours) */}
         <div
-          className="sticky top-0 z-30 bg-cream-soft border-b border-hairline"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `${PROP_COL_WIDTH}px ${gridWidth}px`,
-          }}
+          className="sticky top-0 z-30 bg-cream-soft border-b border-hairline flex"
+          style={{ minWidth: PROP_COL_WIDTH + gridWidth }}
         >
           {/* Coin haut-gauche (sticky-left aussi) */}
           <div
             className="sticky left-0 border-r border-hairline flex items-end px-4 pb-2"
-            style={{ height: HEADER_H, backgroundColor: "#F3EFE7", zIndex: 60 }}
+            style={{ width: PROP_COL_WIDTH, flexShrink: 0, height: HEADER_H, backgroundColor: "#F3EFE7", zIndex: 60 }}
           >
             <span className="font-mono-meta text-xs text-slate">
               {filteredProperties.length} appartements
@@ -392,17 +389,13 @@ const Calendar = () => {
 
         {/* Corps */}
         <div
-          className="relative"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `${PROP_COL_WIDTH}px ${gridWidth}px`,
-            minHeight: gridHeight,
-          }}
+          className="relative flex"
+          style={{ minWidth: PROP_COL_WIDTH + gridWidth, minHeight: gridHeight }}
         >
           {/* Colonne apparts (sticky-left) — fond opaque, z-index élevé pour masquer les barres */}
           <div
             className="sticky left-0 border-r border-hairline"
-            style={{ width: PROP_COL_WIDTH, backgroundColor: "#F3EFE7", zIndex: 50 }}
+            style={{ width: PROP_COL_WIDTH, flexShrink: 0, backgroundColor: "#F3EFE7", zIndex: 50 }}
           >
             {properties.isLoading ? (
               <div className="p-4 font-mono-meta text-sm text-slate">
@@ -441,7 +434,7 @@ const Calendar = () => {
           {/* Grille jours × apparts */}
           <div
             className="relative"
-            style={{ width: gridWidth, height: gridHeight }}
+            style={{ width: gridWidth, height: gridHeight, flexShrink: 0 }}
           >
             {/* Lignes jours (cellules cliquables) */}
             {filteredProperties.map((p, rowIdx) => (
