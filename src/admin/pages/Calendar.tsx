@@ -336,8 +336,8 @@ const Calendar = () => {
         >
           {/* Coin haut-gauche (sticky-left aussi) */}
           <div
-            className="sticky left-0 z-40 bg-cream-soft border-r border-hairline flex items-end px-4 pb-2"
-            style={{ height: HEADER_H }}
+            className="sticky left-0 border-r border-hairline flex items-end px-4 pb-2"
+            style={{ height: HEADER_H, backgroundColor: "#F3EFE7", zIndex: 60 }}
           >
             <span className="font-mono-meta text-xs text-slate">
               {filteredProperties.length} appartements
@@ -399,10 +399,10 @@ const Calendar = () => {
             minHeight: gridHeight,
           }}
         >
-          {/* Colonne apparts (sticky-left) — fond opaque pour masquer les barres qui passent derrière */}
+          {/* Colonne apparts (sticky-left) — fond opaque, z-index élevé pour masquer les barres */}
           <div
-            className="sticky left-0 z-20 border-r border-hairline"
-            style={{ width: PROP_COL_WIDTH, backgroundColor: "hsl(var(--cream))" }}
+            className="sticky left-0 border-r border-hairline"
+            style={{ width: PROP_COL_WIDTH, backgroundColor: "#F3EFE7", zIndex: 50 }}
           >
             {properties.isLoading ? (
               <div className="p-4 font-mono-meta text-sm text-slate">
@@ -525,6 +525,7 @@ const Calendar = () => {
                       left: left + 2,
                       width: width - 4,
                       height: BAR_HEIGHT,
+                      zIndex: 0,
                       ...(isCancelled ? CANCELLED_STYLE : {}),
                     }}
                     onMouseEnter={(e) => {
