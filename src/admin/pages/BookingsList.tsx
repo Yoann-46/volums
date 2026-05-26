@@ -77,7 +77,7 @@ const BookingsList = () => {
         </div>
         <Link
           to="/admin/bookings/new"
-          className="inline-flex items-center gap-2 bg-ink text-cream px-4 h-10 font-mono-meta text-sm hover:bg-copper transition-colors"
+          className="inline-flex items-center gap-2 bg-ink text-cream px-4 h-10 rounded-xl font-mono-meta text-sm hover:bg-copper transition-colors"
         >
           <Plus className="w-4 h-4" /> Nouvelle réservation
         </Link>
@@ -86,11 +86,11 @@ const BookingsList = () => {
       {isLoading ? (
         <div className="font-mono-meta text-slate">Chargement…</div>
       ) : items.length === 0 ? (
-        <div className="border border-hairline bg-cream-soft p-8 text-center text-slate">
+        <div className="border border-hairline bg-cream-soft p-8 rounded-xl text-center text-slate">
           Aucune réservation. Crée la première.
         </div>
       ) : (
-        <div className="border border-hairline bg-cream-soft">
+        <div className="border border-hairline bg-cream-soft rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-hairline font-mono-meta text-xs text-slate">
             <span className="col-span-2">Booking ID · Statut</span>
             <span className="col-span-2">Locataire</span>
@@ -115,7 +115,7 @@ const BookingsList = () => {
                   <div className="text-copper">{b.booking_id}</div>
                   <div className="mt-1">
                     <span
-                      className={`inline-block px-2 py-0.5 font-mono-meta text-[10px] ${STATUS_COLORS[status] ?? "bg-slate/20 text-slate"}`}
+                      className={`inline-block px-2.5 py-0.5 rounded-full font-mono-meta text-[10px] ${STATUS_COLORS[status] ?? "bg-slate/20 text-slate"}`}
                     >
                       {STATUS_LABELS[status] ?? status}
                     </span>
@@ -140,20 +140,16 @@ const BookingsList = () => {
                   <div className="font-display">
                     {b.total_amount !== null ? formatEuro(b.total_amount) : "—"}
                   </div>
-                  <div className="font-mono-meta text-xs text-slate mt-0.5 flex items-center gap-2">
-                    <span title={`Acompte : ${depositStatus === "paid" ? "payé" : "en attente"}`}>
-                      A {depositStatus === "paid" ? "✓" : "⏳"}
-                    </span>
-                    <span title={`Solde : ${balanceStatus === "paid" ? "payé" : "en attente"}`}>
-                      S {balanceStatus === "paid" ? "✓" : "⏳"}
-                    </span>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <PaymentPill letter="A" paid={depositStatus === "paid"} kind="Acompte" />
+                    <PaymentPill letter="S" paid={balanceStatus === "paid"} kind="Solde" />
                   </div>
                 </div>
                 <div className="md:col-span-1 flex items-center justify-end gap-2">
                   <button
                     onClick={() => copyLink(b.booking_id)}
                     title="Copier le lien partageable"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <Copy className={`w-4 h-4 ${copied === b.booking_id ? "text-copper" : ""}`} />
                   </button>
@@ -162,21 +158,21 @@ const BookingsList = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Voir la page client (nouvel onglet)"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
                   <Link
                     to={`/admin/bookings/${b.id}`}
                     title="Modifier"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </Link>
                   <button
                     onClick={() => onDelete(b.id, `${b.guest_name} · ${b.booking_id}`)}
                     title="Supprimer"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-red-700 hover:text-cream hover:border-red-700 transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-red-700 hover:text-cream hover:border-red-700 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -189,5 +185,27 @@ const BookingsList = () => {
     </div>
   );
 };
+
+// ─── Pastille A/S : verte si payé, jaune si en attente ───
+const PaymentPill = ({
+  letter,
+  paid,
+  kind,
+}: {
+  letter: "A" | "S";
+  paid: boolean;
+  kind: "Acompte" | "Solde";
+}) => (
+  <span
+    title={`${kind} : ${paid ? "payé" : "en attente"}`}
+    className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-mono-meta text-[11px] font-semibold ${
+      paid
+        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+        : "bg-amber-100 text-amber-900 border border-amber-300"
+    }`}
+  >
+    {letter}
+  </span>
+);
 
 export default BookingsList;

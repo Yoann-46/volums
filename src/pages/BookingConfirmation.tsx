@@ -187,6 +187,39 @@ const BookingConfirmation = () => {
           </p>
         </div>
 
+        {/* PAYMENT — placé en haut pour être visible sans scroll */}
+        {!isCancelled && (
+          <div className="bc-payment">
+            <div className="bc-section-label">Payment</div>
+
+            <PaymentBlock
+              label="Deposit"
+              amount={booking.deposit_amount}
+              method={booking.deposit_payment_method}
+              status={booking.deposit_status}
+              paidAt={booking.deposit_paid_at}
+              ctaLabel="Pay the deposit"
+            />
+
+            <PaymentBlock
+              label="Balance"
+              amount={booking.balance_amount}
+              method={booking.balance_payment_method}
+              status={booking.balance_status}
+              paidAt={booking.balance_paid_at}
+              ctaLabel="Pay the balance"
+              gated={booking.deposit_status !== "paid"}
+            />
+
+            {isAwaitingPayment && (
+              <p className="bc-payment-note">
+                Payment is processed securely. Card details are handled by Stripe.
+                For bank transfers, IBAN and reference are sent to you via WhatsApp.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* DATES STRIP */}
         <div className="bc-dates-strip">
           <div className="bc-date-block">
@@ -269,6 +302,19 @@ const BookingConfirmation = () => {
             </span>
             <span className="bc-price-row-value">{total}</span>
           </div>
+
+          {/* Ménage final : ligne toujours affichée, "Included" ou "Not included" selon valeur */}
+          <CleaningRow
+            label="Final cleaning"
+            value={booking.final_cleaning_fee ?? booking.cleaning_fee}
+          />
+
+          {/* Ménage hebdo : ligne toujours affichée */}
+          <CleaningRow
+            label="Weekly cleaning"
+            value={booking.weekly_cleaning_fee}
+          />
+
           <div className="bc-price-row">
             <span className="bc-price-row-label">Utilities &amp; Tourist Tax</span>
             <span className="bc-price-row-value">Included</span>
@@ -277,45 +323,17 @@ const BookingConfirmation = () => {
           <div className="bc-price-total">
             <span className="bc-price-total-label">Total Due</span>
             <div>
-              <span className="bc-price-total-value">{total}</span>
+              <span className="bc-price-total-value">
+                {formatEuroPlain(
+                  (booking.total_amount ?? 0) +
+                    (booking.final_cleaning_fee ?? booking.cleaning_fee ?? 0) +
+                    (booking.weekly_cleaning_fee ?? 0) * Math.ceil(nights / 7),
+                )}
+              </span>
               <span className="bc-price-total-note">Tax Incl. · All-Inclusive</span>
             </div>
           </div>
         </div>
-
-        {/* PAYMENT */}
-        {!isCancelled && (
-          <div className="bc-payment">
-            <div className="bc-section-label">Payment</div>
-
-            <PaymentBlock
-              label="Deposit"
-              amount={booking.deposit_amount}
-              method={booking.deposit_payment_method}
-              status={booking.deposit_status}
-              paidAt={booking.deposit_paid_at}
-              ctaLabel="Pay the deposit"
-            />
-
-            <PaymentBlock
-              label="Balance"
-              amount={booking.balance_amount}
-              method={booking.balance_payment_method}
-              status={booking.balance_status}
-              paidAt={booking.balance_paid_at}
-              ctaLabel="Pay the balance"
-              // Le solde n'est cliquable qu'une fois l'acompte payé (UX cohérente)
-              gated={booking.deposit_status !== "paid"}
-            />
-
-            {isAwaitingPayment && (
-              <p className="bc-payment-note">
-                Payment is processed securely. Card details are handled by Stripe.
-                For bank transfers, IBAN and reference are sent to you via WhatsApp.
-              </p>
-            )}
-          </div>
-        )}
 
         {/* CONTACT */}
         <div className="bc-contact-block">
@@ -359,6 +377,26 @@ const BookingConfirmation = () => {
           </div>
         </footer>
       </main>
+    </div>
+  );
+};
+
+// ─── Ligne ménage dans le price summary ───
+// Règle UX : valeur 0 ou null → "Not included" (en gris) ; valeur > 0 → "Included".
+type CleaningRowProps = {
+  label: string;
+  value: number | null;
+};
+const CleaningRow = ({ label, value }: CleaningRowProps) => {
+  const isIncluded = (value ?? 0) > 0;
+  return (
+    <div className="bc-price-row">
+      <span className="bc-price-row-label">{label}</span>
+      <span
+        className={`bc-price-row-value ${isIncluded ? "" : "bc-price-row-excluded"}`}
+      >
+        {isIncluded ? "Included" : "Not included"}
+      </span>
     </div>
   );
 };

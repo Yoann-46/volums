@@ -24,7 +24,9 @@ export type BookingPublic = {
   check_in: string;
   check_out: string;
   total_amount: number | null;
-  cleaning_fee: number | null;
+  cleaning_fee: number | null;          // legacy
+  final_cleaning_fee: number | null;    // forfait fin de séjour (€)
+  weekly_cleaning_fee: number | null;   // prix par semaine (€)
   deposit_amount: number | null;
   balance_amount: number | null;
   status: PublicBookingStatus;
@@ -65,7 +67,8 @@ export const fetchBookingByBookingId = async (
         id, booking_id,
         guest_name, guest_first_name, guest_last_name, guest_email,
         check_in, check_out,
-        total_amount, cleaning_fee, deposit_amount, balance_amount,
+        total_amount, cleaning_fee, final_cleaning_fee, weekly_cleaning_fee,
+        deposit_amount, balance_amount,
         status,
         deposit_payment_method, balance_payment_method,
         deposit_status, balance_status, deposit_paid_at, balance_paid_at,
@@ -106,6 +109,8 @@ export const fetchBookingByBookingId = async (
     check_out: data.check_out,
     total_amount: data.total_amount,
     cleaning_fee: (row.cleaning_fee as number | null) ?? null,
+    final_cleaning_fee: (row.final_cleaning_fee as number | null) ?? null,
+    weekly_cleaning_fee: (row.weekly_cleaning_fee as number | null) ?? null,
     deposit_amount: (row.deposit_amount as number | null) ?? null,
     balance_amount: (row.balance_amount as number | null) ?? null,
     status: ((row.status as PublicBookingStatus | null) ?? "draft"),

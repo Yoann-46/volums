@@ -44,7 +44,8 @@ const emptyForm = (): BookingInput => ({
   check_in: todayIso(),
   check_out: todayIso(),
   total_amount: null,
-  cleaning_fee: null,
+  final_cleaning_fee: null,
+  weekly_cleaning_fee: null,
   deposit_amount: null,
   balance_amount: null,
   deposit_payment_method: "stripe",
@@ -54,7 +55,11 @@ const emptyForm = (): BookingInput => ({
 });
 
 const inputCls =
-  "w-full border border-hairline bg-cream-soft px-3 py-2 focus:outline-none focus:border-ink";
+  "w-full border border-hairline bg-cream-soft px-3 py-2 rounded-xl focus:outline-none focus:border-ink";
+
+// Nombre de semaines complètes pour le calcul du ménage hebdo.
+// Convention : on facture les semaines entamées (ceil). Ex: 8 nuits = 2 semaines.
+const weeksFromNights = (n: number) => Math.max(0, Math.ceil(n / 7));
 
 const statusLabel: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-slate/20 text-slate" },
@@ -99,7 +104,11 @@ const BookingEdit = () => {
         check_in: row.check_in,
         check_out: row.check_out,
         total_amount: row.total_amount,
-        cleaning_fee: row.cleaning_fee ?? null,
+        // Fallback : si l'ancien `cleaning_fee` est rempli mais pas le nouveau, on l'affiche
+        // dans le forfait final pour ne pas perdre la valeur côté UI.
+        final_cleaning_fee:
+          row.final_cleaning_fee ?? row.cleaning_fee ?? null,
+        weekly_cleaning_fee: row.weekly_cleaning_fee ?? null,
         deposit_amount: row.deposit_amount ?? null,
         balance_amount: row.balance_amount ?? null,
         deposit_payment_method: row.deposit_payment_method ?? "stripe",
@@ -120,10 +129,15 @@ const BookingEdit = () => {
     [properties.data, form.property_id],
   );
 
+  // Découpe ménage
+  const weeks = weeksFromNights(n);
+  const weeklyTotal = weeks * (form.weekly_cleaning_fee ?? 0);
+  const cleaningTotal = (form.final_cleaning_fee ?? 0) + weeklyTotal;
+
   // Sommes de contrôle visuelles
   const sumDepositBalance =
     (form.deposit_amount ?? 0) + (form.balance_amount ?? 0);
-  const sumTotalCleaning = (form.total_amount ?? 0) + (form.cleaning_fee ?? 0);
+  const sumTotalCleaning = (form.total_amount ?? 0) + cleaningTotal;
   const sumsMatch =
     sumDepositBalance > 0 && sumTotalCleaning > 0 && sumDepositBalance === sumTotalCleaning;
 
@@ -256,7 +270,7 @@ const BookingEdit = () => {
           {!isNew && (
             <div className="mt-2">
               <span
-                className={`inline-block px-3 py-1 font-mono-meta text-xs ${statusLabel[currentStatus]?.color ?? ""}`}
+                className={`inline-block px-3 py-1 rounded-full font-mono-meta text-xs ${statusLabel[currentStatus]?.color ?? ""}`}
               >
                 {statusLabel[currentStatus]?.label ?? currentStatus}
               </span>
@@ -274,7 +288,7 @@ const BookingEdit = () => {
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* ─── IDENTITÉ ─── */}
-        <section className="border border-hairline bg-cream-soft p-6">
+        <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Identité</h2>
 
           <label className="block mb-4">
@@ -360,7 +374,7 @@ const BookingEdit = () => {
         </section>
 
         {/* ─── DATES ─── */}
-        <section className="border border-hairline bg-cream-soft p-6">
+        <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Dates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
@@ -394,37 +408,79 @@ const BookingEdit = () => {
         </section>
 
         {/* ─── TARIF ─── */}
-        <section className="border border-hairline bg-cream-soft p-6">
+        <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Tarif</h2>
 
+          <label className="block mb-4">
+            <span className="block font-mono-meta text-xs text-slate mb-1">Total séjour (€)</span>
+            <input
+              type="number"
+              value={form.total_amount ?? ""}
+              onChange={(e) =>
+                set("total_amount", e.target.value === "" ? null : parseInt(e.target.value))
+              }
+              placeholder="7200"
+              className={inputCls}
+            />
+          </label>
+
+          {/* Ménage : deux types */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <label className="block">
-              <span className="block font-mono-meta text-xs text-slate mb-1">Total séjour (€)</span>
-              <input
-                type="number"
-                value={form.total_amount ?? ""}
-                onChange={(e) =>
-                  set("total_amount", e.target.value === "" ? null : parseInt(e.target.value))
-                }
-                placeholder="7200"
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
               <span className="block font-mono-meta text-xs text-slate mb-1">
-                Frais de ménage (€, optionnel)
+                Ménage final (€, forfait optionnel)
               </span>
               <input
                 type="number"
-                value={form.cleaning_fee ?? ""}
+                value={form.final_cleaning_fee ?? ""}
                 onChange={(e) =>
-                  set("cleaning_fee", e.target.value === "" ? null : parseInt(e.target.value))
+                  set(
+                    "final_cleaning_fee",
+                    e.target.value === "" ? null : parseInt(e.target.value),
+                  )
                 }
                 placeholder="150"
                 className={inputCls}
               />
+              <span className="block font-mono-meta text-xs text-slate/60 mt-1">
+                Ménage de fin de séjour, facturé une seule fois au départ.
+              </span>
+            </label>
+            <label className="block">
+              <span className="block font-mono-meta text-xs text-slate mb-1">
+                Ménage hebdomadaire (€/semaine, optionnel)
+              </span>
+              <input
+                type="number"
+                value={form.weekly_cleaning_fee ?? ""}
+                onChange={(e) =>
+                  set(
+                    "weekly_cleaning_fee",
+                    e.target.value === "" ? null : parseInt(e.target.value),
+                  )
+                }
+                placeholder="60"
+                className={inputCls}
+              />
+              <span className="block font-mono-meta text-xs text-slate/60 mt-1">
+                {n > 0
+                  ? `${weeks} semaine${weeks > 1 ? "s" : ""} sur le séjour · Total hebdo : ${weeklyTotal} €`
+                  : "Renseigne les dates pour voir le total"}
+              </span>
             </label>
           </div>
+
+          {cleaningTotal > 0 && (
+            <div className="mb-4 font-mono-meta text-xs text-slate bg-cream px-3 py-2 rounded-xl border border-hairline">
+              Total ménage : <strong>{cleaningTotal} €</strong>
+              {(form.final_cleaning_fee ?? 0) > 0 && (
+                <span> ({form.final_cleaning_fee} € final{weeklyTotal > 0 && ` + ${weeklyTotal} € hebdo`})</span>
+              )}
+              {(form.final_cleaning_fee ?? 0) === 0 && weeklyTotal > 0 && (
+                <span> ({weeklyTotal} € hebdo)</span>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
@@ -455,7 +511,7 @@ const BookingEdit = () => {
 
           {(sumDepositBalance > 0 || sumTotalCleaning > 0) && (
             <div
-              className={`mt-3 font-mono-meta text-xs px-3 py-2 ${
+              className={`mt-3 font-mono-meta text-xs px-3 py-2 rounded-xl ${
                 sumsMatch
                   ? "bg-emerald-50 text-emerald-900"
                   : "bg-amber-50 text-amber-900"
@@ -469,7 +525,7 @@ const BookingEdit = () => {
         </section>
 
         {/* ─── MODES DE PAIEMENT ─── */}
-        <section className="border border-hairline bg-cream-soft p-6">
+        <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Mode de paiement</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -485,7 +541,7 @@ const BookingEdit = () => {
                       key={m}
                       type="button"
                       onClick={() => set("deposit_payment_method", m)}
-                      className={`flex-1 px-3 h-10 font-mono-meta text-sm border transition-colors ${
+                      className={`flex-1 px-3 h-10 rounded-xl font-mono-meta text-sm border transition-colors ${
                         active
                           ? "bg-ink text-cream border-ink"
                           : "border-hairline text-slate hover:border-ink"
@@ -508,7 +564,7 @@ const BookingEdit = () => {
                       key={m}
                       type="button"
                       onClick={() => set("balance_payment_method", m)}
-                      className={`flex-1 px-3 h-10 font-mono-meta text-sm border transition-colors ${
+                      className={`flex-1 px-3 h-10 rounded-xl font-mono-meta text-sm border transition-colors ${
                         active
                           ? "bg-ink text-cream border-ink"
                           : "border-hairline text-slate hover:border-ink"
@@ -525,7 +581,7 @@ const BookingEdit = () => {
 
         {/* ─── STATUTS PAIEMENT (édition uniquement) ─── */}
         {!isNew && row && (
-          <section className="border border-hairline bg-cream-soft p-6">
+          <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
             <h2 className="font-display text-xl mb-5">Statut paiements</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -552,7 +608,7 @@ const BookingEdit = () => {
         )}
 
         {/* ─── NOTES ─── */}
-        <section className="border border-hairline bg-cream-soft p-6">
+        <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Notes (interne)</h2>
           <label className="block">
             <span className="block font-mono-meta text-xs text-slate mb-1">
@@ -570,7 +626,7 @@ const BookingEdit = () => {
 
         {/* ─── LIEN CLIENT ─── */}
         {!isNew && (
-          <section className="border border-hairline bg-cream-soft p-6">
+          <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
             <h2 className="font-display text-xl mb-3">Lien client</h2>
             <div className="font-mono-meta text-sm break-all text-copper mb-3">
               {publicUrl}
@@ -579,14 +635,14 @@ const BookingEdit = () => {
               <button
                 type="button"
                 onClick={copyLink}
-                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
+                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 rounded-xl font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" /> Copier le lien
               </button>
               <button
                 type="button"
                 onClick={copyWhatsApp}
-                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
+                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 rounded-xl font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" /> Copier message WhatsApp
               </button>
@@ -594,7 +650,7 @@ const BookingEdit = () => {
                 href={publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
+                className="inline-flex items-center gap-2 border border-hairline px-4 h-9 rounded-xl font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" /> Voir la page
               </a>
@@ -604,20 +660,20 @@ const BookingEdit = () => {
 
         {/* ─── ZONE DANGER ─── */}
         {!isNew && !isCancelled && (
-          <section className="border border-hairline bg-cream-soft p-6">
+          <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
             <h2 className="font-display text-xl mb-3 text-red-800">Zone sensible</h2>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={onCancel}
-                className="border border-amber-700 text-amber-800 px-5 h-10 font-mono-meta text-sm hover:bg-amber-700 hover:text-cream transition-colors"
+                className="border border-amber-700 text-amber-800 px-5 h-10 rounded-xl font-mono-meta text-sm hover:bg-amber-700 hover:text-cream transition-colors"
               >
                 Annuler la réservation
               </button>
               <button
                 type="button"
                 onClick={onDelete}
-                className="border border-red-700 text-red-700 px-5 h-10 font-mono-meta text-sm hover:bg-red-700 hover:text-cream transition-colors"
+                className="border border-red-700 text-red-700 px-5 h-10 rounded-xl font-mono-meta text-sm hover:bg-red-700 hover:text-cream transition-colors"
               >
                 Supprimer définitivement
               </button>
@@ -632,14 +688,14 @@ const BookingEdit = () => {
           <button
             type="button"
             onClick={() => nav("/admin/bookings")}
-            className="border border-hairline px-5 h-11 font-mono-meta hover:bg-ink hover:text-cream transition-colors"
+            className="border border-hairline px-5 h-11 rounded-xl font-mono-meta hover:bg-ink hover:text-cream transition-colors"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="bg-ink text-cream px-6 h-11 font-mono-meta hover:bg-copper transition-colors disabled:opacity-50"
+            className="bg-ink text-cream px-6 h-11 rounded-xl font-mono-meta hover:bg-copper transition-colors disabled:opacity-50"
           >
             {saving ? "Enregistrement…" : isNew ? "Créer la réservation" : "Enregistrer"}
           </button>
@@ -672,7 +728,7 @@ const PaymentStatusBlock = ({
 
   return (
     <div
-      className={`border p-4 ${
+      className={`border p-4 rounded-xl ${
         isPaid ? "border-emerald-300 bg-emerald-50/50" : "border-hairline bg-cream"
       }`}
     >
@@ -703,7 +759,7 @@ const PaymentStatusBlock = ({
         <button
           type="button"
           onClick={onMarkPaid}
-          className="mt-3 w-full border border-hairline bg-cream-soft px-3 h-9 font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
+          className="mt-3 w-full border border-hairline bg-cream-soft px-3 h-9 rounded-xl font-mono-meta text-xs hover:bg-ink hover:text-cream transition-colors"
         >
           Marquer comme payé
         </button>

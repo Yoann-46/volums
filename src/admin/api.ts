@@ -118,7 +118,9 @@ export type BookingInput = {
   check_out: string;                   // YYYY-MM-DD
   // Tarif
   total_amount: number | null;         // montant principal du séjour (€)
-  cleaning_fee?: number | null;        // frais de ménage (€)
+  cleaning_fee?: number | null;        // legacy (déprécié) — voir final_cleaning_fee
+  final_cleaning_fee?: number | null;  // ménage de fin de séjour (€ forfait)
+  weekly_cleaning_fee?: number | null; // ménage hebdomadaire (€ par semaine)
   deposit_amount?: number | null;      // acompte (€)
   balance_amount?: number | null;      // solde (€)
   // Paiement
