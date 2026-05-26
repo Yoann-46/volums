@@ -16,6 +16,7 @@ import PropertyEdit from "./admin/pages/PropertyEdit";
 import Dashboard from "./admin/pages/Dashboard";
 import BookingsList from "./admin/pages/BookingsList";
 import BookingEdit from "./admin/pages/BookingEdit";
+import Calendar from "./admin/pages/Calendar";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import { LangProvider } from "./i18n/LangContext";
 
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="bookings" element={<BookingsList />} />
                 <Route path="bookings/new" element={<BookingEdit />} />
                 <Route path="bookings/:id" element={<BookingEdit />} />
+                <Route path="calendar" element={<Calendar />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

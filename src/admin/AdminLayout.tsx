@@ -37,6 +37,14 @@ export const AdminLayout = () => {
             >
               Réservations
             </NavLink>
+            <NavLink
+              to="/admin/calendar"
+              className={({ isActive }) =>
+                isActive ? "text-ink" : "text-slate hover:text-ink"
+              }
+            >
+              Calendrier
+            </NavLink>
             <button
               onClick={async () => {
                 await signOut();

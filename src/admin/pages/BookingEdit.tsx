@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Check, Clock } from "lucide-react";
@@ -75,7 +75,21 @@ const BookingEdit = () => {
   const isNew = !id || id === "new";
   const nav = useNavigate();
   const qc = useQueryClient();
-  const [form, setForm] = useState<BookingInput>(emptyForm);
+  const [searchParams] = useSearchParams();
+  // Query params optionnels pour pré-remplir le form depuis le calendrier
+  // (ex: ?property_id=...&check_in=2026-06-01&check_out=2026-07-01)
+  const [form, setForm] = useState<BookingInput>(() => {
+    const base = emptyForm();
+    if (isNew) {
+      const propertyId = searchParams.get("property_id");
+      const checkIn = searchParams.get("check_in");
+      const checkOut = searchParams.get("check_out");
+      if (propertyId) base.property_id = propertyId;
+      if (checkIn) base.check_in = checkIn;
+      if (checkOut) base.check_out = checkOut;
+    }
+    return base;
+  });
   const [saving, setSaving] = useState(false);
 
   const properties = useQuery({

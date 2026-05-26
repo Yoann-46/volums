@@ -255,6 +255,26 @@ export const cancelBooking = async (id: string) => {
 };
 
 /**
+ * Liste les réservations qui chevauchent une plage de dates (pour le calendrier).
+ * Une résa est incluse si `check_in < rangeEnd` ET `check_out > rangeStart`
+ * (overlap au sens large : on inclut les résa qui s'étendent au-delà de la fenêtre).
+ * Inclut toutes les propriétés référencées (join sur properties).
+ */
+export const listBookingsInRange = async (rangeStart: string, rangeEnd: string) => {
+  const sb = must();
+  const { data, error } = await sb
+    .from("bookings")
+    .select(
+      `*, property:properties(id, name, name_italic, ref, slug)`,
+    )
+    .lt("check_in", rangeEnd)
+    .gt("check_out", rangeStart)
+    .order("check_in", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+};
+
+/**
  * Met à jour le sort_order de plusieurs properties d'un coup.
  * Reçoit un tableau `[{ id, sort_order }]`. Fait les updates en parallèle.
  */
