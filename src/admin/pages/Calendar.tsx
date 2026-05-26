@@ -200,6 +200,18 @@ const Calendar = () => {
     x: number;
     y: number;
   } | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showTooltip = (booking: Booking, x: number, y: number) => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    setHovered({ booking, x, y });
+  };
+  const scheduleHideTooltip = () => {
+    hideTimeoutRef.current = setTimeout(() => setHovered(null), 150);
+  };
+  const cancelHideTooltip = () => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+  };
 
   // ─── Drag-to-create ───
   type DragState = {
@@ -268,7 +280,6 @@ const Calendar = () => {
   return (
     <div
       className="mx-auto max-w-[1600px] px-6 md:px-10 py-6"
-      onMouseLeave={() => setHovered(null)}
     >
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
@@ -388,10 +399,10 @@ const Calendar = () => {
             minHeight: gridHeight,
           }}
         >
-          {/* Colonne apparts (sticky-left) */}
+          {/* Colonne apparts (sticky-left) — fond opaque pour masquer les barres qui passent derrière */}
           <div
-            className="sticky left-0 z-20 bg-cream-soft border-r border-hairline"
-            style={{ width: PROP_COL_WIDTH }}
+            className="sticky left-0 z-20 border-r border-hairline"
+            style={{ width: PROP_COL_WIDTH, backgroundColor: "var(--cream, #F5F0E8)" }}
           >
             {properties.isLoading ? (
               <div className="p-4 font-mono-meta text-sm text-slate">
@@ -501,11 +512,14 @@ const Calendar = () => {
                 const isCancelled = status === "cancelled";
                 const guestFirstName = (b.guest_name ?? "").split(" ")[0] || "—";
                 const total = bookingTotal(b);
-                const showLabel = width > 80; // assez large pour afficher du texte
+                const showLabel = width > 60; // assez large pour afficher du texte
+                const barLabel = total > 0
+                  ? `${guestFirstName} · ${fmtEuro(total)}`
+                  : guestFirstName;
                 return (
                   <div
                     key={b.id}
-                    className={`absolute border rounded-xl px-2 flex items-center gap-2 text-[11px] font-mono-meta cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow ${STATUS_BAR[status]}`}
+                    className={`absolute border rounded-xl px-2.5 flex items-center text-[11px] font-mono-meta cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow ${STATUS_BAR[status]}`}
                     style={{
                       top: rowIdx * ROW_HEIGHT + (ROW_HEIGHT - BAR_HEIGHT) / 2,
                       left: left + 2,
@@ -515,25 +529,14 @@ const Calendar = () => {
                     }}
                     onMouseEnter={(e) => {
                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      setHovered({
-                        booking: b,
-                        x: rect.left + rect.width / 2,
-                        y: rect.top,
-                      });
+                      showTooltip(b, rect.left + rect.width / 2, rect.top);
                     }}
-                    onMouseLeave={() => setHovered(null)}
+                    onMouseLeave={scheduleHideTooltip}
                     onClick={() => nav(`/admin/bookings/${b.id}`)}
                     title={`${b.guest_name} · ${b.check_in} → ${b.check_out}`}
                   >
                     {showLabel && (
-                      <>
-                        <span className="font-semibold truncate">{guestFirstName}</span>
-                        {total > 0 && (
-                          <span className="opacity-90 ml-auto whitespace-nowrap">
-                            {fmtEuro(total)}
-                          </span>
-                        )}
-                      </>
+                      <span className="font-semibold truncate">{barLabel}</span>
                     )}
                   </div>
                 );
@@ -561,42 +564,64 @@ const Calendar = () => {
       </div>
 
       {/* Popup résa au hover */}
-      {hovered && <BookingTooltip data={hovered} onOpen={(id) => nav(`/admin/bookings/${id}`)} />}
+      {hovered && (
+        <BookingTooltip
+          data={hovered}
+          onOpen={(id) => nav(`/admin/bookings/${id}`)}
+          onMouseEnter={cancelHideTooltip}
+          onMouseLeave={scheduleHideTooltip}
+        />
+      )}
     </div>
   );
 };
 
 // ─── Tooltip flottant ───
+const TOOLTIP_WIDTH = 280;
+
 const BookingTooltip = ({
   data,
   onOpen,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   data: { booking: Booking; x: number; y: number };
   onOpen: (id: string) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }) => {
   const { booking: b, x, y } = data;
   const status = (b.status ?? "draft") as Status;
   const total = bookingTotal(b);
 
+  // Clamp horizontal pour ne jamais sortir du viewport
+  const clampedX = Math.max(
+    TOOLTIP_WIDTH / 2 + 12,
+    Math.min(x, window.innerWidth - TOOLTIP_WIDTH / 2 - 12),
+  );
+
   const formatDateFr = (iso: string) => {
-    const [y, m, d] = iso.split("-");
-    return `${d}/${m}/${y}`;
+    const [yr, mo, dy] = iso.split("-");
+    return `${dy}/${mo}/${yr}`;
   };
 
   return (
     <div
-      className="fixed z-50 pointer-events-none"
+      className="fixed z-50"
       style={{
-        left: x,
+        left: clampedX,
         top: y - 10,
         transform: "translate(-50%, -100%)",
+        width: TOOLTIP_WIDTH,
       }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <div className="bg-ink text-cream rounded-xl shadow-lg px-4 py-3 min-w-[240px] max-w-[300px] pointer-events-auto">
+      <div className="bg-ink text-cream rounded-xl shadow-lg px-4 py-3">
         <div className="flex items-center justify-between gap-3 mb-1.5">
           <span className="font-display text-base truncate">{b.guest_name}</span>
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono-meta border ${STATUS_BAR[status]}`}
+            className={`text-[10px] px-2 py-0.5 rounded-full font-mono-meta border flex-shrink-0 ${STATUS_BAR[status]}`}
             style={status === "cancelled" ? CANCELLED_STYLE : undefined}
           >
             {STATUS_LABEL_FR[status]}
