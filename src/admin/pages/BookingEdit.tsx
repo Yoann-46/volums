@@ -305,6 +305,30 @@ const BookingEdit = () => {
         <section className="border border-hairline bg-cream-soft p-6 rounded-xl">
           <h2 className="font-display text-xl mb-5">Identité</h2>
 
+          {/* Statut — sélecteur manuel */}
+          <div className="mb-5">
+            <span className="block font-mono-meta text-xs text-slate mb-2">Statut</span>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(statusLabel) as Array<keyof typeof statusLabel>).map((s) => {
+                const active = form.status === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => set("status", s)}
+                    className={`px-3 h-8 rounded-full font-mono-meta text-xs border transition-colors ${
+                      active
+                        ? statusLabel[s].color + " border-transparent font-semibold"
+                        : "border-hairline text-slate hover:border-ink"
+                    }`}
+                  >
+                    {statusLabel[s].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <label className="block mb-4">
             <span className="block font-mono-meta text-xs text-slate mb-1">
               Booking ID (généré automatiquement, modifiable)
