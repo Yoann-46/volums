@@ -529,8 +529,7 @@ const Calendar = () => {
                       ...(isCancelled ? CANCELLED_STYLE : {}),
                     }}
                     onMouseEnter={(e) => {
-                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      showTooltip(b, rect.left + rect.width / 2, rect.top);
+                      showTooltip(b, e.clientX, e.clientY);
                     }}
                     onMouseLeave={scheduleHideTooltip}
                     onClick={() => nav(`/admin/bookings/${b.id}`)}
@@ -611,7 +610,7 @@ const BookingTooltip = ({
       className="fixed z-50"
       style={{
         left: clampedX,
-        top: y - 10,
+        top: y - 14,
         transform: "translate(-50%, -100%)",
         width: TOOLTIP_WIDTH,
       }}
