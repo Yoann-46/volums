@@ -402,7 +402,7 @@ const Calendar = () => {
           {/* Colonne apparts (sticky-left) — fond opaque pour masquer les barres qui passent derrière */}
           <div
             className="sticky left-0 z-20 border-r border-hairline"
-            style={{ width: PROP_COL_WIDTH, backgroundColor: "var(--cream, #F5F0E8)" }}
+            style={{ width: PROP_COL_WIDTH, backgroundColor: "hsl(var(--cream))" }}
           >
             {properties.isLoading ? (
               <div className="p-4 font-mono-meta text-sm text-slate">
