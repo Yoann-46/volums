@@ -141,6 +141,7 @@
   background: var(--bc-charcoal);
   padding: 28px 36px;
   margin-bottom: 40px;
+  border-radius: 12px;
 }
 .bc-date-block { flex: 1; }
 .bc-date-right { text-align: right; }
@@ -175,6 +176,7 @@
   border: 1px solid var(--bc-border);
   margin-bottom: 40px; overflow: hidden;
   display: flex; flex-direction: column;
+  border-radius: 12px;
 }
 .bc-property-photos {
   display: grid;
@@ -251,6 +253,7 @@
   border: 1px solid var(--bc-border);
   padding: 32px 36px;
   margin-bottom: 40px;
+  border-radius: 12px;
 }
 .bc-price-row {
   display: flex; justify-content: space-between; align-items: baseline;
@@ -296,6 +299,7 @@
   padding: 32px 36px;
   margin-bottom: 40px;
   display: flex; align-items: center; justify-content: space-between;
+  border-radius: 12px;
   gap: 24px;
 }
 .bc-contact-title {
@@ -405,6 +409,153 @@
     gap: 12px; padding-top: 22px;
   }
   .bc-footer-text { text-align: left; }
+}
+
+/* ─── Ligne ménage exclue (greyed out) ─── */
+.bc-price-row-excluded {
+  color: var(--bc-muted);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ─── Banner variants ─── */
+.bc-banner-cancelled {
+  background: #f5e1dc;
+  border-bottom-color: #c05a3a;
+}
+.bc-banner-cancelled .bc-confirm-check {
+  background: #c05a3a;
+}
+.bc-banner-cancelled .bc-confirm-text-label {
+  color: #c05a3a;
+}
+
+.bc-banner-awaiting {
+  background: #f4ead3;
+  border-bottom-color: #d4a73e;
+}
+.bc-banner-awaiting .bc-confirm-check {
+  background: #b88a25;
+}
+.bc-banner-awaiting .bc-confirm-text-label {
+  color: #8a6418;
+}
+
+/* ─── Payment section ─── */
+.bc-payment {
+  margin-top: 40px;
+  margin-bottom: 48px;
+}
+
+.bc-payment-block {
+  background: var(--bc-white);
+  border: 1px solid var(--bc-border);
+  padding: 22px 26px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+
+.bc-payment-block.is-paid {
+  background: #f0f6f0;
+  border-color: #c4dcc4;
+}
+
+.bc-payment-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bc-payment-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bc-muted);
+  margin-bottom: 6px;
+}
+
+.bc-payment-amount {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px;
+  color: var(--bc-charcoal);
+  line-height: 1;
+}
+
+.bc-payment-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bc-payment-paid {
+  color: #2d6a2d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bc-payment-pending {
+  color: #8a6418;
+}
+
+.bc-payment-cta {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bc-border);
+}
+
+.bc-payment-btn {
+  background: var(--bc-charcoal);
+  color: var(--bc-cream);
+  border: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 12px;
+}
+
+.bc-payment-btn:hover:not(:disabled) {
+  background: var(--bc-rust);
+}
+
+.bc-payment-btn:disabled {
+  background: var(--bc-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.bc-payment-bank {
+  font-size: 13px;
+  color: var(--bc-charcoal-light);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.bc-payment-note {
+  font-size: 12px;
+  color: var(--bc-muted);
+  line-height: 1.6;
+  margin-top: 14px;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .bc-payment-block {
+    padding: 18px 20px;
+  }
+  .bc-payment-amount {
+    font-size: 22px;
+  }
 }
 
 @media print {

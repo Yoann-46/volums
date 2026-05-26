@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { toast } from "sonner";
 import { useBooking } from "@/data/bookings";
 import "./booking-confirmation.css";
 
@@ -72,6 +73,33 @@ const BookingConfirmation = () => {
     booking.total_amount !== null
       ? formatEuroPlain(booking.total_amount)
       : "—";
+
+  // ── Statut global de la résa : pilote la bannière en haut de page ──
+  const isCancelled = booking.status === "cancelled";
+  const isFullyPaid =
+    booking.status === "paid_full" ||
+    (booking.deposit_status === "paid" && booking.balance_status === "paid");
+  const isAwaitingPayment =
+    booking.status === "draft" || booking.status === "sent" || !isFullyPaid;
+
+  const bannerVariant = isCancelled
+    ? "cancelled"
+    : isFullyPaid
+      ? "confirmed"
+      : "awaiting";
+
+  const bannerLabel =
+    bannerVariant === "cancelled"
+      ? "Cancelled"
+      : bannerVariant === "confirmed"
+        ? "Confirmed"
+        : "Awaiting Payment";
+  const bannerTitle =
+    bannerVariant === "cancelled"
+      ? "This reservation has been cancelled."
+      : bannerVariant === "confirmed"
+        ? "Your reservation is confirmed."
+        : "Your reservation is held — please complete payment.";
   const tagline =
     booking.property.baseline_en && booking.property.baseline_en.trim() !== ""
       ? booking.property.baseline_en
@@ -115,27 +143,28 @@ const BookingConfirmation = () => {
         <span className="bc-header-tag">Booking Confirmation</span>
       </header>
 
-      {/* CONFIRMATION BANNER */}
-      <div className="bc-confirm-banner">
+      {/* STATUS BANNER (varie selon le statut de la résa) */}
+      <div className={`bc-confirm-banner bc-banner-${bannerVariant}`}>
         <div className="bc-confirm-check">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+          {bannerVariant === "confirmed" ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : bannerVariant === "cancelled" ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          )}
         </div>
         <div>
-          <div className="bc-confirm-text-label">Confirmed</div>
-          <div className="bc-confirm-text-title">
-            Your reservation is <em>confirmed.</em>
-          </div>
+          <div className="bc-confirm-text-label">{bannerLabel}</div>
+          <div className="bc-confirm-text-title">{bannerTitle}</div>
         </div>
         <div className="bc-confirm-ref">
           <div className="bc-confirm-ref-label">Booking ID</div>
@@ -157,6 +186,39 @@ const BookingConfirmation = () => {
             {booking.property.name_italic}.
           </p>
         </div>
+
+        {/* PAYMENT — placé en haut pour être visible sans scroll */}
+        {!isCancelled && (
+          <div className="bc-payment">
+            <div className="bc-section-label">Payment</div>
+
+            <PaymentBlock
+              label="Deposit"
+              amount={booking.deposit_amount}
+              method={booking.deposit_payment_method}
+              status={booking.deposit_status}
+              paidAt={booking.deposit_paid_at}
+              ctaLabel="Pay the deposit"
+            />
+
+            <PaymentBlock
+              label="Balance"
+              amount={booking.balance_amount}
+              method={booking.balance_payment_method}
+              status={booking.balance_status}
+              paidAt={booking.balance_paid_at}
+              ctaLabel="Pay the balance"
+              gated={booking.deposit_status !== "paid"}
+            />
+
+            {isAwaitingPayment && (
+              <p className="bc-payment-note">
+                Payment is processed securely. Card details are handled by Stripe.
+                For bank transfers, IBAN and reference are sent to you via WhatsApp.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* DATES STRIP */}
         <div className="bc-dates-strip">
@@ -240,6 +302,19 @@ const BookingConfirmation = () => {
             </span>
             <span className="bc-price-row-value">{total}</span>
           </div>
+
+          {/* Ménage final : ligne toujours affichée, "Included" ou "Not included" selon valeur */}
+          <CleaningRow
+            label="Final cleaning"
+            value={booking.final_cleaning_fee ?? booking.cleaning_fee}
+          />
+
+          {/* Ménage hebdo : ligne toujours affichée */}
+          <CleaningRow
+            label="Weekly cleaning"
+            value={booking.weekly_cleaning_fee}
+          />
+
           <div className="bc-price-row">
             <span className="bc-price-row-label">Utilities &amp; Tourist Tax</span>
             <span className="bc-price-row-value">Included</span>
@@ -248,7 +323,13 @@ const BookingConfirmation = () => {
           <div className="bc-price-total">
             <span className="bc-price-total-label">Total Due</span>
             <div>
-              <span className="bc-price-total-value">{total}</span>
+              <span className="bc-price-total-value">
+                {formatEuroPlain(
+                  (booking.total_amount ?? 0) +
+                    (booking.final_cleaning_fee ?? booking.cleaning_fee ?? 0) +
+                    (booking.weekly_cleaning_fee ?? 0) * Math.ceil(nights / 7),
+                )}
+              </span>
               <span className="bc-price-total-note">Tax Incl. · All-Inclusive</span>
             </div>
           </div>
@@ -296,6 +377,101 @@ const BookingConfirmation = () => {
           </div>
         </footer>
       </main>
+    </div>
+  );
+};
+
+// ─── Ligne ménage dans le price summary ───
+// Règle UX : valeur 0 ou null → "Not included" (en gris) ; valeur > 0 → "Included".
+type CleaningRowProps = {
+  label: string;
+  value: number | null;
+};
+const CleaningRow = ({ label, value }: CleaningRowProps) => {
+  const isIncluded = (value ?? 0) > 0;
+  return (
+    <div className="bc-price-row">
+      <span className="bc-price-row-label">{label}</span>
+      <span
+        className={`bc-price-row-value ${isIncluded ? "" : "bc-price-row-excluded"}`}
+      >
+        {isIncluded ? "Included" : "Not included"}
+      </span>
+    </div>
+  );
+};
+
+// ─── Bloc paiement (acompte / solde) sur la page client ───
+type BlockProps = {
+  label: string;
+  amount: number | null;
+  method: "stripe" | "bank_transfer" | null;
+  status: "pending" | "paid" | "refunded";
+  paidAt: string | null;
+  ctaLabel: string;
+  gated?: boolean; // true → bouton désactivé tant qu'une condition n'est pas remplie
+};
+
+const PaymentBlock = ({ label, amount, method, status, paidAt, ctaLabel, gated }: BlockProps) => {
+  const isPaid = status === "paid";
+  const amountLabel = amount !== null ? formatEuroPlain(amount) : "—";
+  const paidDate = paidAt
+    ? new Date(paidAt).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  const onPayStripe = () => {
+    // Stripe sera branché dès que les clés test seront disponibles.
+    toast.info("Stripe payment will be enabled shortly. Stand by.");
+  };
+
+  return (
+    <div className={`bc-payment-block ${isPaid ? "is-paid" : "is-pending"}`}>
+      <div className="bc-payment-row">
+        <div>
+          <div className="bc-payment-label">{label}</div>
+          <div className="bc-payment-amount">{amountLabel}</div>
+        </div>
+        <div className="bc-payment-status">
+          {isPaid ? (
+            <span className="bc-payment-paid">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Paid {paidDate && `· ${paidDate}`}
+            </span>
+          ) : method === "bank_transfer" ? (
+            <span className="bc-payment-pending">Awaiting bank transfer</span>
+          ) : (
+            <span className="bc-payment-pending">Awaiting payment</span>
+          )}
+        </div>
+      </div>
+
+      {!isPaid && (
+        <div className="bc-payment-cta">
+          {method === "stripe" ? (
+            <button
+              type="button"
+              onClick={onPayStripe}
+              disabled={gated}
+              className="bc-payment-btn"
+            >
+              {gated ? "Available after deposit is paid" : ctaLabel}
+            </button>
+          ) : method === "bank_transfer" ? (
+            <p className="bc-payment-bank">
+              Payment by bank transfer.<br />
+              IBAN and payment reference sent to you separately via WhatsApp.
+            </p>
+          ) : (
+            <p className="bc-payment-bank">Payment method to be confirmed.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

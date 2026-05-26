@@ -17,6 +17,24 @@ const nights = (a: string, b: string) => {
   return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon",
+  sent: "Lien envoyé",
+  deposit_paid: "Acompte payé",
+  paid_full: "Soldé",
+  completed: "Terminé",
+  cancelled: "Annulée",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-slate/20 text-slate",
+  sent: "bg-amber-100 text-amber-900",
+  deposit_paid: "bg-blue-100 text-blue-900",
+  paid_full: "bg-emerald-100 text-emerald-900",
+  completed: "bg-slate/10 text-slate",
+  cancelled: "bg-red-100 text-red-900",
+};
+
 const BookingsList = () => {
   const qc = useQueryClient();
   const { data: items = [], isLoading } = useQuery({
@@ -59,7 +77,7 @@ const BookingsList = () => {
         </div>
         <Link
           to="/admin/bookings/new"
-          className="inline-flex items-center gap-2 bg-ink text-cream px-4 h-10 font-mono-meta text-sm hover:bg-copper transition-colors"
+          className="inline-flex items-center gap-2 bg-ink text-cream px-4 h-10 rounded-xl font-mono-meta text-sm hover:bg-copper transition-colors"
         >
           <Plus className="w-4 h-4" /> Nouvelle réservation
         </Link>
@@ -68,30 +86,40 @@ const BookingsList = () => {
       {isLoading ? (
         <div className="font-mono-meta text-slate">Chargement…</div>
       ) : items.length === 0 ? (
-        <div className="border border-hairline bg-cream-soft p-8 text-center text-slate">
+        <div className="border border-hairline bg-cream-soft p-8 rounded-xl text-center text-slate">
           Aucune réservation. Crée la première.
         </div>
       ) : (
-        <div className="border border-hairline bg-cream-soft">
+        <div className="border border-hairline bg-cream-soft rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-hairline font-mono-meta text-xs text-slate">
-            <span className="col-span-2">Booking ID</span>
+            <span className="col-span-2">Booking ID · Statut</span>
             <span className="col-span-2">Locataire</span>
             <span className="col-span-3">Appartement</span>
-            <span className="col-span-3">Séjour</span>
-            <span className="col-span-1">Total</span>
+            <span className="col-span-2">Séjour</span>
+            <span className="col-span-2">Total · Paiement</span>
             <span className="col-span-1 text-right">Actions</span>
           </div>
           {items.map((b) => {
             const prop = (b as { property?: { name?: string; name_italic?: string; ref?: string } }).property;
             const propLabel = prop ? `${prop.name ?? ""} ${prop.name_italic ?? ""}` : "—";
             const n = nights(b.check_in, b.check_out);
+            const status = (b as { status?: string }).status ?? "draft";
+            const depositStatus = (b as { deposit_status?: string }).deposit_status ?? "pending";
+            const balanceStatus = (b as { balance_status?: string }).balance_status ?? "pending";
             return (
               <div
                 key={b.id}
                 className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-5 py-4 border-b border-hairline last:border-b-0 items-center"
               >
                 <div className="md:col-span-2 font-mono-meta text-sm">
-                  <span className="text-copper">{b.booking_id}</span>
+                  <div className="text-copper">{b.booking_id}</div>
+                  <div className="mt-1">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full font-mono-meta text-[10px] ${STATUS_COLORS[status] ?? "bg-slate/20 text-slate"}`}
+                    >
+                      {STATUS_LABELS[status] ?? status}
+                    </span>
+                  </div>
                 </div>
                 <div className="md:col-span-2 font-display text-lg">{b.guest_name}</div>
                 <div className="md:col-span-3">
@@ -100,7 +128,7 @@ const BookingsList = () => {
                     <div className="font-mono-meta text-xs text-slate mt-0.5">Réf {prop.ref}</div>
                   )}
                 </div>
-                <div className="md:col-span-3 text-sm">
+                <div className="md:col-span-2 text-sm">
                   <div>
                     {formatDate(b.check_in)} → {formatDate(b.check_out)}
                   </div>
@@ -108,14 +136,20 @@ const BookingsList = () => {
                     {n} nuit{n > 1 ? "s" : ""}
                   </div>
                 </div>
-                <div className="md:col-span-1 font-display">
-                  {b.total_amount !== null ? formatEuro(b.total_amount) : "—"}
+                <div className="md:col-span-2">
+                  <div className="font-display">
+                    {b.total_amount !== null ? formatEuro(b.total_amount) : "—"}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <PaymentPill letter="A" paid={depositStatus === "paid"} kind="Acompte" />
+                    <PaymentPill letter="S" paid={balanceStatus === "paid"} kind="Solde" />
+                  </div>
                 </div>
                 <div className="md:col-span-1 flex items-center justify-end gap-2">
                   <button
                     onClick={() => copyLink(b.booking_id)}
                     title="Copier le lien partageable"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <Copy className={`w-4 h-4 ${copied === b.booking_id ? "text-copper" : ""}`} />
                   </button>
@@ -124,21 +158,21 @@ const BookingsList = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Voir la page client (nouvel onglet)"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
                   <Link
                     to={`/admin/bookings/${b.id}`}
                     title="Modifier"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-ink hover:text-cream transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </Link>
                   <button
                     onClick={() => onDelete(b.id, `${b.guest_name} · ${b.booking_id}`)}
                     title="Supprimer"
-                    className="w-9 h-9 border border-hairline flex items-center justify-center hover:bg-red-700 hover:text-cream hover:border-red-700 transition-colors"
+                    className="w-9 h-9 border border-hairline rounded-xl flex items-center justify-center hover:bg-red-700 hover:text-cream hover:border-red-700 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -151,5 +185,27 @@ const BookingsList = () => {
     </div>
   );
 };
+
+// ─── Pastille A/S : verte si payé, jaune si en attente ───
+const PaymentPill = ({
+  letter,
+  paid,
+  kind,
+}: {
+  letter: "A" | "S";
+  paid: boolean;
+  kind: "Acompte" | "Solde";
+}) => (
+  <span
+    title={`${kind} : ${paid ? "payé" : "en attente"}`}
+    className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-mono-meta text-[11px] font-semibold ${
+      paid
+        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+        : "bg-amber-100 text-amber-900 border border-amber-300"
+    }`}
+  >
+    {letter}
+  </span>
+);
 
 export default BookingsList;

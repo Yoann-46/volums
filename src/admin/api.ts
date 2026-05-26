@@ -94,18 +94,56 @@ export const listPropertiesWithCover = async () => {
 
 // ─────────────────────────── BOOKINGS ───────────────────────────
 
+export type PaymentMethod = "stripe" | "bank_transfer";
+export type PaymentStatus = "pending" | "paid" | "refunded";
+export type BookingStatus =
+  | "draft"
+  | "sent"
+  | "deposit_paid"
+  | "paid_full"
+  | "completed"
+  | "cancelled";
+
 export type BookingInput = {
   booking_id: string;
   property_id: string;
-  guest_name: string;
-  check_in: string;   // YYYY-MM-DD
-  check_out: string;  // YYYY-MM-DD
-  total_amount: number | null;
+  // Coordonnées client
+  guest_name: string;                  // legacy / fallback affichage
+  guest_first_name?: string | null;
+  guest_last_name?: string | null;
+  guest_email?: string | null;
+  guest_phone?: string | null;
+  // Dates
+  check_in: string;                    // YYYY-MM-DD
+  check_out: string;                   // YYYY-MM-DD
+  // Tarif
+  total_amount: number | null;         // montant principal du séjour (€)
+  cleaning_fee?: number | null;        // legacy (déprécié) — voir final_cleaning_fee
+  final_cleaning_fee?: number | null;  // ménage de fin de séjour (€ forfait)
+  weekly_cleaning_fee?: number | null; // ménage hebdomadaire (€ par semaine)
+  deposit_amount?: number | null;      // acompte (€)
+  balance_amount?: number | null;      // solde (€)
+  // Paiement
+  deposit_payment_method?: PaymentMethod | null;
+  balance_payment_method?: PaymentMethod | null;
+  // Statut global
+  status?: BookingStatus;
+  // Divers
   notes?: string | null;
 };
 
 export type BookingRow = BookingInput & {
   id: string;
+  // Statuts paiement (gérés par actions explicites, pas le form principal)
+  deposit_status: PaymentStatus;
+  balance_status: PaymentStatus;
+  deposit_paid_at: string | null;
+  balance_paid_at: string | null;
+  // Stripe (renseigné par webhook)
+  stripe_customer_id: string | null;
+  stripe_deposit_intent_id: string | null;
+  stripe_balance_intent_id: string | null;
+  // Timestamps
   created_at: string;
   updated_at: string;
 };
@@ -149,6 +187,70 @@ export const updateBooking = async (id: string, input: Partial<BookingInput>) =>
 export const deleteBooking = async (id: string) => {
   const sb = must();
   const { error } = await sb.from("bookings").delete().eq("id", id);
+  if (error) throw error;
+};
+
+/**
+ * Marque l'acompte comme payé (utilisé surtout pour les virements bancaires
+ * que l'admin confirme manuellement après réception).
+ * Met aussi à jour le statut global de la résa si nécessaire.
+ */
+export const markDepositPaid = async (id: string) => {
+  const sb = must();
+  // Lecture de l'état actuel pour décider du nouveau status global
+  const { data: cur, error: readErr } = await sb
+    .from("bookings")
+    .select("balance_status")
+    .eq("id", id)
+    .single();
+  if (readErr) throw readErr;
+  const newStatus =
+    cur && (cur as { balance_status?: PaymentStatus }).balance_status === "paid"
+      ? "paid_full"
+      : "deposit_paid";
+  const { error } = await sb
+    .from("bookings")
+    .update({
+      deposit_status: "paid",
+      deposit_paid_at: new Date().toISOString(),
+      status: newStatus,
+    })
+    .eq("id", id);
+  if (error) throw error;
+};
+
+/**
+ * Marque le solde comme payé. Si l'acompte est déjà payé, passe en `paid_full`.
+ */
+export const markBalancePaid = async (id: string) => {
+  const sb = must();
+  const { data: cur, error: readErr } = await sb
+    .from("bookings")
+    .select("deposit_status")
+    .eq("id", id)
+    .single();
+  if (readErr) throw readErr;
+  const newStatus =
+    cur && (cur as { deposit_status?: PaymentStatus }).deposit_status === "paid"
+      ? "paid_full"
+      : "deposit_paid";
+  const { error } = await sb
+    .from("bookings")
+    .update({
+      balance_status: "paid",
+      balance_paid_at: new Date().toISOString(),
+      status: newStatus,
+    })
+    .eq("id", id);
+  if (error) throw error;
+};
+
+/**
+ * Annule une réservation. Conserve les données — change juste le statut global.
+ */
+export const cancelBooking = async (id: string) => {
+  const sb = must();
+  const { error } = await sb.from("bookings").update({ status: "cancelled" }).eq("id", id);
   if (error) throw error;
 };
 
