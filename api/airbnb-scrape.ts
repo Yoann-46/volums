@@ -146,30 +146,51 @@ function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
     if (meta) result.description = unescapeJson(meta[1]);
   }
 
-  // ── Photos : toutes les URLs muscache/Hosting-<id>, dédup par UUID ──────
-  const photoRegex = new RegExp(
-    `https://a0\\.muscache\\.com/im/pictures/hosting/Hosting-${listingId}/[^\\s"\\\\]+`,
-    "g",
-  );
-  const urls = html.match(photoRegex) ?? [];
+  // ── Photos ──────────────────────────────────────────────────────────────
+  //    Airbnb référence les photos d'une MÊME annonce sous deux préfixes :
+  //      - Hosting-<id numérique>           (ex: Hosting-1479089889861115198)
+  //      - Hosting-<id GraphQL base64>      (ex: Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTQ3…)
+  //    Aucune des deux formes n'est complète seule → il faut l'union.
+  //    On accepte un préfixe SI : c'est l'id numérique, OU un base64 qui décode
+  //    vers l'id numérique (garde-fou contre les annonces recommandées en bas de page).
+  const normalized = html.replace(/\\u002[Ff]/g, "/").replace(/\\\//g, "/");
+
+  const belongsToListing = (token: string): boolean => {
+    if (token === listingId) return true;
+    // base64 → "StaySupplyListing:<id>" doit contenir l'id numérique
+    if (/^[A-Za-z0-9+/=]{20,}$/.test(token)) {
+      try {
+        return atob(token).includes(listingId);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const photoRegex =
+    /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/Hosting-([^/]+)\/[^\s"\\]+/g;
   const byUuid = new Map<string, string>();
-  for (const raw of urls) {
-    const base = raw.split("?")[0];
+  for (const m of normalized.matchAll(photoRegex)) {
+    const token = m[1];
+    if (!belongsToListing(token)) continue;
+    const base = m[0].split("?")[0];
     const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
     if (uuid && !byUuid.has(uuid)) {
-      // On force une grande taille via le paramètre de policy Airbnb
       byUuid.set(uuid, base + "?im_w=1440");
     }
   }
   result.photos = [...byUuid.values()];
 
-  // Fallback : si pas de Hosting-<id>, prendre toutes les photos hosting génériques
+  // Fallback : si rien trouvé, prendre toutes les photos hosting (hors assets/users)
   if (result.photos.length === 0) {
     const generic =
-      html.match(/https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/[^\s"\\]+/g) ??
-      [];
+      normalized.match(
+        /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/[^\s"\\]+/g,
+      ) ?? [];
     const seen = new Set<string>();
     for (const raw of generic) {
+      if (raw.includes("AirbnbPlatformAssets")) continue;
       const base = raw.split("?")[0];
       const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
       if (uuid && !seen.has(uuid)) {
