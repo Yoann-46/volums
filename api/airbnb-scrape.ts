@@ -2,14 +2,20 @@
 // POST { url: string }
 // → { title, description, bedrooms, bathrooms, maxGuests, surface, neighborhood, photos }
 //
-// Stratégie :
-// 1. API v2 Airbnb (rapide, fonctionne pour les anciens IDs courts ~8 chiffres)
-// 2. Jina.ai Reader (r.jina.ai) en fallback — service public qui rend la page avec un
-//    vrai navigateur headless et retourne contenu + images, sans se faire bloquer.
+// Stratégie (testée sur de vraies annonces) :
+//   On passe par Jina.ai Reader (r.jina.ai) en mode HTML. Jina rend la page avec un
+//   navigateur headless (bypass Cloudflare) et nous renvoie le HTML complet incluant
+//   l'état embarqué d'Airbnb. On y extrait :
+//     - listingTitle           → titre
+//     - personCapacity         → nb voyageurs
+//     - ligne résumé "· N chambres · N lits · N salles de bain"
+//     - blocs htmlText          → description
+//     - toutes les URLs muscache/Hosting-<id>  → photos (dédup par UUID)
+//
+//   Le scraping HTML direct ne marche pas : Airbnb bloque les IPs datacenter (Vercel)
+//   avec des boucles de redirect Cloudflare. Jina contourne ça.
 
 export const config = { runtime: "edge" };
-
-const AIRBNB_API_KEY = "d306zoyjsyarp7uygyw5bd3aeq";
 
 type AirbnbResult = {
   title: string;
@@ -40,200 +46,25 @@ function extractListingId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-function findByKey(obj: unknown, key: string): unknown {
-  if (!obj || typeof obj !== "object") return undefined;
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      const r = findByKey(item, key);
-      if (r !== undefined) return r;
-    }
-    return undefined;
-  }
-  const rec = obj as Record<string, unknown>;
-  if (key in rec) return rec[key];
-  for (const v of Object.values(rec)) {
-    const r = findByKey(v, key);
-    if (r !== undefined) return r;
-  }
-  return undefined;
+/** Décode les échappements JSON/unicode présents dans le HTML brut de Jina. */
+function unescapeJson(s: string): string {
+  return s
+    .replace(/\\u003c/gi, "<")
+    .replace(/\\u003e/gi, ">")
+    .replace(/\\u002f/gi, "/")
+    .replace(/\\u0026/gi, "&")
+    .replace(/\\"/g, '"')
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "") // strip HTML tags résiduels
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\\n/g, "\n")
+    .trim();
 }
 
-function collectPhotoUrls(obj: unknown, found: Set<string> = new Set()): Set<string> {
-  if (typeof obj === "string") {
-    if (obj.includes("muscache.com") && obj.includes("/pictures/")) {
-      found.add(obj.split("?")[0]);
-    }
-  } else if (Array.isArray(obj)) {
-    obj.forEach((v) => collectPhotoUrls(v, found));
-  } else if (obj && typeof obj === "object") {
-    Object.values(obj as Record<string, unknown>).forEach((v) =>
-      collectPhotoUrls(v, found),
-    );
-  }
-  return found;
-}
-
-// ─── Stratégie 1 : API Airbnb v2 ─────────────────────────────────────────────
-
-async function tryAirbnbV2Api(listingId: string): Promise<AirbnbResult | null> {
-  const url =
-    `https://www.airbnb.com/api/v2/pdp_listing_details` +
-    `?id=${listingId}&_format=for_rooms_show&key=${AIRBNB_API_KEY}`;
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-        Accept: "application/json",
-        "Accept-Language": "fr-FR,fr;q=0.9",
-        "X-Airbnb-API-Key": AIRBNB_API_KEY,
-        Referer: `https://www.airbnb.com/rooms/${listingId}`,
-      },
-    });
-    if (!res.ok) return null;
-
-    const data = (await res.json()) as Record<string, unknown>;
-    const listing = ((data.pdp_listing_detail as Record<string, unknown>) ??
-      data) as Record<string, unknown>;
-
-    const result: AirbnbResult = {
-      title: (listing.name as string) ?? "",
-      description:
-        (listing.summary as string) || (listing.description as string) || "",
-      bedrooms: 0,
-      bathrooms: 0,
-      maxGuests: 0,
-      surface: "",
-      neighborhood: "",
-      photos: [],
-    };
-
-    const bedrooms = listing.bedrooms ?? findByKey(data, "bedrooms");
-    if (typeof bedrooms === "number") result.bedrooms = Math.round(bedrooms);
-
-    const bathrooms = listing.bathrooms ?? findByKey(data, "bathrooms");
-    if (typeof bathrooms === "number") result.bathrooms = Math.ceil(bathrooms);
-
-    const capacity =
-      listing.person_capacity ??
-      findByKey(data, "person_capacity") ??
-      findByKey(data, "personCapacity");
-    if (typeof capacity === "number") result.maxGuests = capacity;
-
-    const sqft = listing.square_feet ?? findByKey(data, "square_feet");
-    if (typeof sqft === "number" && sqft > 0)
-      result.surface = `${Math.round(sqft * 0.0929)} m²`;
-
-    result.neighborhood =
-      (listing.city as string) ||
-      (listing.public_address as string) ||
-      ((findByKey(data, "city") as string) ?? "");
-
-    // Photos
-    const rawPhotos =
-      (listing.photos as unknown[]) ?? (findByKey(data, "photos") as unknown[]) ?? [];
-    if (Array.isArray(rawPhotos)) {
-      const seen = new Set<string>();
-      for (const p of rawPhotos) {
-        if (!p || typeof p !== "object") continue;
-        const ph = p as Record<string, unknown>;
-        const photoUrl =
-          (ph.xx_large as string) ||
-          (ph.x_large as string) ||
-          (ph.large as string) ||
-          (ph.picture as string) ||
-          "";
-        if (photoUrl && !seen.has(photoUrl)) {
-          seen.add(photoUrl);
-          result.photos.push(photoUrl);
-        }
-      }
-    }
-    if (result.photos.length === 0) {
-      const found = collectPhotoUrls(data);
-      result.photos = [...found].map((u) => u + "?aki_policy=xx_large");
-    }
-
-    // On retourne null si on n'a rien (listing vide = probablement ID non supporté)
-    if (!result.title && result.photos.length === 0) return null;
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-// ─── Stratégie 2 : Jina.ai Reader ────────────────────────────────────────────
-// r.jina.ai rend la page avec un vrai headless browser et retourne contenu + images.
-
-async function tryJinaReader(listingUrl: string): Promise<AirbnbResult | null> {
-  const jinaUrl = `https://r.jina.ai/${listingUrl}`;
-  try {
-    const res = await fetch(jinaUrl, {
-      headers: {
-        Accept: "application/json",
-        "X-With-Images-Summary": "true", // inclure les URLs des images
-        "X-No-Cache": "true",
-      },
-    });
-    if (!res.ok) return null;
-
-    // Jina retourne du JSON si Accept: application/json
-    let body: Record<string, unknown>;
-    const contentType = res.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      body = (await res.json()) as Record<string, unknown>;
-    } else {
-      // Fallback : parse le texte brut
-      const text = await res.text();
-      return parseJinaText(text);
-    }
-
-    const data = (body.data as Record<string, unknown>) ?? body;
-    const content = (data.content as string) || (data.text as string) || "";
-    const images = (data.images as Record<string, string>) ?? {};
-
-    const result: AirbnbResult = {
-      title: ((data.title as string) ?? "").replace(/\s*[-–|]\s*Airbnb$/i, "").trim(),
-      description: (data.description as string) ?? "",
-      bedrooms: 0,
-      bathrooms: 0,
-      maxGuests: 0,
-      surface: "",
-      neighborhood: "",
-      photos: [],
-    };
-
-    // Extraire les chiffres clés depuis le contenu markdown
-    extractNumbersFromText(content, result);
-
-    // Photos depuis le champ images (map caption → url)
-    const photoUrls = Object.values(images).filter(
-      (u) => typeof u === "string" && u.includes("muscache.com"),
-    );
-    const seen = new Set<string>();
-    for (const u of photoUrls) {
-      const base = u.split("?")[0];
-      if (!seen.has(base)) {
-        seen.add(base);
-        result.photos.push(base + "?aki_policy=xx_large");
-      }
-    }
-
-    // Fallback photos depuis le contenu text si images vide
-    if (result.photos.length === 0) {
-      const found = collectPhotoUrls(content);
-      result.photos = [...found].map((u) => u + "?aki_policy=xx_large");
-    }
-
-    if (!result.title && result.photos.length === 0) return null;
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-/** Parse la réponse texte brut de Jina (si pas de JSON). */
-function parseJinaText(text: string): AirbnbResult | null {
+/** Parse le HTML rendu par Jina pour en extraire les données structurées. */
+function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
   const result: AirbnbResult = {
     title: "",
     description: "",
@@ -245,58 +76,103 @@ function parseJinaText(text: string): AirbnbResult | null {
     photos: [],
   };
 
-  // Titre sur la 1re ligne non vide ou après "Title:"
+  // ── Titre ──────────────────────────────────────────────────────────────
   const titleMatch =
-    text.match(/^Title:\s*(.+)$/m) || text.match(/^#\s+(.+)$/m);
-  if (titleMatch)
-    result.title = titleMatch[1].replace(/\s*[-–|]\s*Airbnb$/i, "").trim();
+    html.match(/"listingTitle":"([^"]+)"/) ||
+    html.match(/"pdpTitle":"([^"]+)"/) ||
+    html.match(/"sharingConfig":\{"title":"([^"]+)"/);
+  if (titleMatch) result.title = unescapeJson(titleMatch[1]);
 
-  extractNumbersFromText(text, result);
+  // ── Voyageurs ──────────────────────────────────────────────────────────
+  const capMatch = html.match(/"personCapacity":\s*(\d+)/);
+  if (capMatch) result.maxGuests = parseInt(capMatch[1]);
 
-  // Photos
-  const found = collectPhotoUrls(text);
-  result.photos = [...found].map((u) => u + "?aki_policy=xx_large");
+  // ── Ligne résumé : "… · N chambres · N lits · N salles de bain" ─────────
+  //    (FR ou EN). On capte chambres + salles de bain.
+  const bedMatch =
+    html.match(/·\s*(\d+)\s*chambres?\b/i) ||
+    html.match(/·\s*(\d+)\s*bedrooms?\b/i) ||
+    html.match(/\b(\d+)\s*chambres?\s*·/i) ||
+    html.match(/\b(\d+)\s*bedrooms?\s*·/i);
+  if (bedMatch) result.bedrooms = parseInt(bedMatch[1]);
 
-  if (!result.title && result.photos.length === 0) return null;
-  return result;
-}
+  const bathMatch =
+    html.match(/(\d+(?:[,.]\d)?)\s*salles?\s*de\s*bain/i) ||
+    html.match(/(\d+(?:[,.]\d)?)\s*bathrooms?/i);
+  if (bathMatch)
+    result.bathrooms = Math.ceil(parseFloat(bathMatch[1].replace(",", ".")));
 
-/** Extrait chambres / SDB / voyageurs depuis un bloc de texte. */
-function extractNumbersFromText(text: string, result: AirbnbResult) {
-  if (!result.bedrooms) {
-    const m =
-      text.match(/(\d+)\s*chambre/i) || text.match(/(\d+)\s*bedroom/i);
-    if (m) result.bedrooms = parseInt(m[1]);
-  }
-  if (!result.bathrooms) {
-    const m =
-      text.match(/(\d+(?:[.,]\d)?)\s*salle\s*de\s*bain/i) ||
-      text.match(/(\d+(?:[.,]\d)?)\s*bathroom/i);
-    if (m) result.bathrooms = Math.ceil(parseFloat(m[1].replace(",", ".")));
-  }
-  if (!result.maxGuests) {
-    const m =
-      text.match(/(\d+)\s*voyageur/i) ||
-      text.match(/(\d+)\s*guest/i) ||
-      text.match(/(\d+)\s*personne/i);
-    if (m) result.maxGuests = parseInt(m[1]);
+  // ── Type de bien + ville : "Appartement · Monaco · ★5,0 · …" ────────────
+  const typeCityMatch = html.match(
+    /([A-ZÀ-Ÿ][a-zà-ÿ]+)\s*·\s*([A-ZÀ-Ÿ][\w\sÀ-ÿ-]+?)\s*·\s*★/,
+  );
+  if (typeCityMatch) {
+    result.neighborhood = typeCityMatch[2].trim();
   }
   if (!result.neighborhood) {
-    // "Paris, Île-de-France, France" ou "11e arrondissement, Paris"
-    const m = text.match(/([A-ZÀ-Ÿ][a-zà-ÿ\-]+(?:,\s*[A-ZÀ-Ÿ][a-zà-ÿ\-]+){1,2})/);
-    if (m) result.neighborhood = m[1];
+    const cityMatch = html.match(/"localizedCity":"([^"]+)"/);
+    if (cityMatch) result.neighborhood = unescapeJson(cityMatch[1]);
   }
-}
 
-// ─── Handler principal ────────────────────────────────────────────────────────
+  // ── Description : meilleur bloc htmlText (hors disclaimers) ──────────────
+  const htmlTexts = [...html.matchAll(/"htmlText":"((?:[^"\\]|\\.){60,})"/g)].map(
+    (m) => unescapeJson(m[1]),
+  );
+  const DISCLAIMER = /(responsable de la proposition|particulier\.|lois sur|entièrement responsable|fully responsible|laws on)/i;
+  const candidates = htmlTexts.filter((t) => !DISCLAIMER.test(t));
+  if (candidates.length > 0) {
+    // Le bloc le plus long = la vraie description du logement
+    result.description = candidates.sort((a, b) => b.length - a.length)[0];
+  }
+  // Fallback : meta description
+  if (!result.description) {
+    const meta = html.match(/name="description"\s+content="([^"]+)"/);
+    if (meta) result.description = unescapeJson(meta[1]);
+  }
+
+  // ── Photos : toutes les URLs muscache/Hosting-<id>, dédup par UUID ──────
+  const photoRegex = new RegExp(
+    `https://a0\\.muscache\\.com/im/pictures/hosting/Hosting-${listingId}/[^\\s"\\\\]+`,
+    "g",
+  );
+  const urls = html.match(photoRegex) ?? [];
+  const byUuid = new Map<string, string>();
+  for (const raw of urls) {
+    const base = raw.split("?")[0];
+    const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
+    if (uuid && !byUuid.has(uuid)) {
+      // On force une grande taille via le paramètre de policy Airbnb
+      byUuid.set(uuid, base + "?im_w=1440");
+    }
+  }
+  result.photos = [...byUuid.values()];
+
+  // Fallback : si pas de Hosting-<id>, prendre toutes les photos hosting génériques
+  if (result.photos.length === 0) {
+    const generic =
+      html.match(/https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/[^\s"\\]+/g) ??
+      [];
+    const seen = new Set<string>();
+    for (const raw of generic) {
+      const base = raw.split("?")[0];
+      const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
+      if (uuid && !seen.has(uuid)) {
+        seen.add(uuid);
+        result.photos.push(base + "?im_w=1440");
+      }
+    }
+  }
+
+  return result;
+}
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return jsonResp({ error: "Méthode non autorisée" }, 405);
 
-  // Parse body
-  let listingId: string;
+  // ── Parse body ──────────────────────────────────────────────────────────
   let cleanUrl: string;
+  let listingId: string;
   try {
     const body = (await req.json()) as { url?: string };
     let rawUrl = (body.url ?? "").trim();
@@ -304,30 +180,63 @@ export default async function handler(req: Request): Promise<Response> {
     if (!rawUrl.startsWith("http")) rawUrl = "https://" + rawUrl;
     const parsed = new URL(rawUrl);
     if (!parsed.hostname.includes("airbnb"))
-      throw new Error("URL Airbnb invalide");
+      throw new Error("URL Airbnb invalide (domaine non reconnu)");
     cleanUrl = `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
     const id = extractListingId(rawUrl);
-    if (!id) throw new Error("Impossible d'extraire l'ID depuis l'URL");
+    if (!id) throw new Error("Impossible d'extraire l'ID de l'annonce depuis l'URL");
     listingId = id;
   } catch (e) {
     return jsonResp({ error: e instanceof Error ? e.message : "URL invalide" }, 400);
   }
 
-  // Stratégie 1 : API Airbnb v2 (rapide, fonctionne pour anciens IDs)
-  const v2Result = await tryAirbnbV2Api(listingId);
-  if (v2Result) return jsonResp(v2Result);
+  // ── Appel Jina.ai Reader en mode HTML ───────────────────────────────────
+  let html: string;
+  try {
+    const res = await fetch(`https://r.jina.ai/${cleanUrl}`, {
+      headers: {
+        "X-Return-Format": "html",
+        "X-No-Cache": "true",
+        Accept: "text/html",
+      },
+      // Jina peut prendre 10-30s pour rendre la page
+    });
 
-  // Stratégie 2 : Jina.ai (fonctionne pour nouveaux IDs longs, robuste anti-bot)
-  const jinaResult = await tryJinaReader(cleanUrl);
-  if (jinaResult) return jsonResp(jinaResult);
+    if (!res.ok) {
+      return jsonResp(
+        {
+          error: `Le lecteur de page a répondu ${res.status}. Réessaie dans quelques secondes.`,
+        },
+        502,
+      );
+    }
+    html = await res.text();
+    if (html.length < 1000) {
+      return jsonResp(
+        { error: "Page Airbnb vide ou inaccessible. Vérifie que l'URL est publique." },
+        502,
+      );
+    }
+  } catch (e) {
+    return jsonResp(
+      {
+        error: `Impossible de lire la page : ${e instanceof Error ? e.message : "erreur réseau"}`,
+      },
+      502,
+    );
+  }
 
-  // Tout a échoué
-  return jsonResp(
-    {
-      error:
-        `Impossible d'accéder à cette annonce (ID: ${listingId}). ` +
-        `Vérifie que l'URL est bien publique et réessaie.`,
-    },
-    502,
-  );
+  // ── Extraction ──────────────────────────────────────────────────────────
+  const result = parseAirbnbHtml(html, listingId);
+
+  if (!result.title && result.photos.length === 0) {
+    return jsonResp(
+      {
+        error:
+          "Aucune donnée extraite. L'annonce est peut-être privée, supprimée, ou Airbnb a changé sa structure.",
+      },
+      502,
+    );
+  }
+
+  return jsonResp(result);
 }
