@@ -45,6 +45,14 @@ export const AdminLayout = () => {
             >
               Calendrier
             </NavLink>
+            <NavLink
+              to="/admin/import-airbnb"
+              className={({ isActive }) =>
+                isActive ? "text-ink" : "text-slate hover:text-ink"
+              }
+            >
+              Import Airbnb
+            </NavLink>
             <button
               onClick={async () => {
                 await signOut();

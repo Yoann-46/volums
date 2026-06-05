@@ -17,6 +17,7 @@ import Dashboard from "./admin/pages/Dashboard";
 import BookingsList from "./admin/pages/BookingsList";
 import BookingEdit from "./admin/pages/BookingEdit";
 import Calendar from "./admin/pages/Calendar";
+import AirbnbImport from "./admin/pages/AirbnbImport";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import { LangProvider } from "./i18n/LangContext";
 
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="bookings/new" element={<BookingEdit />} />
                 <Route path="bookings/:id" element={<BookingEdit />} />
                 <Route path="calendar" element={<Calendar />} />
+                <Route path="import-airbnb" element={<AirbnbImport />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
