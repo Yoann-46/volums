@@ -88,19 +88,35 @@ function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
   if (capMatch) result.maxGuests = parseInt(capMatch[1]);
 
   // ── Ligne résumé : "… · N chambres · N lits · N salles de bain" ─────────
-  //    (FR ou EN). On capte chambres + salles de bain.
-  const bedMatch =
-    html.match(/·\s*(\d+)\s*chambres?\b/i) ||
-    html.match(/·\s*(\d+)\s*bedrooms?\b/i) ||
-    html.match(/\b(\d+)\s*chambres?\s*·/i) ||
-    html.match(/\b(\d+)\s*bedrooms?\s*·/i);
-  if (bedMatch) result.bedrooms = parseInt(bedMatch[1]);
+  //    IMPORTANT : on ancre chambres ET salles de bain sur la MÊME ligne
+  //    résumé (séparée par des "·"), sinon on attrape par erreur des légendes
+  //    de photos ("2 salles de bain") ou des annonces recommandées.
+  const summaryMatch =
+    html.match(
+      /(\d+)\s*chambres?\s*·(?:\s*\d+\s*lits?\s*·)?\s*(\d+(?:[,.]\d)?)\s*salles?\s*de\s*bain/i,
+    ) ||
+    html.match(
+      /(\d+)\s*bedrooms?\s*·(?:\s*\d+\s*beds?\s*·)?\s*(\d+(?:[,.]\d)?)\s*bath/i,
+    );
+  if (summaryMatch) {
+    result.bedrooms = parseInt(summaryMatch[1]);
+    result.bathrooms = Math.ceil(parseFloat(summaryMatch[2].replace(",", ".")));
+  }
 
-  const bathMatch =
-    html.match(/(\d+(?:[,.]\d)?)\s*salles?\s*de\s*bain/i) ||
-    html.match(/(\d+(?:[,.]\d)?)\s*bathrooms?/i);
-  if (bathMatch)
-    result.bathrooms = Math.ceil(parseFloat(bathMatch[1].replace(",", ".")));
+  // Fallbacks si la ligne résumé combinée n'a pas matché (studios, formats variés)
+  if (!result.bedrooms) {
+    const b =
+      html.match(/·\s*(\d+)\s*chambres?\b/i) ||
+      html.match(/·\s*(\d+)\s*bedrooms?\b/i);
+    if (b) result.bedrooms = parseInt(b[1]);
+  }
+  if (!result.bathrooms) {
+    const b =
+      html.match(
+        /(?:appartement|logement|maison|villa|studio)\s+de\s+(\d+(?:[,.]\d)?)\s*salles?\s*de\s*bain/i,
+      ) || html.match(/·\s*(\d+(?:[,.]\d)?)\s*salles?\s*de\s*bain/i);
+    if (b) result.bathrooms = Math.ceil(parseFloat(b[1].replace(",", ".")));
+  }
 
   // ── Type de bien + ville : "Appartement · Monaco · ★5,0 · …" ────────────
   const typeCityMatch = html.match(
