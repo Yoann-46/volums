@@ -1,8 +1,14 @@
-// Vercel Edge function — scrape une annonce Airbnb et retourne les données structurées.
+// Vercel Edge function — récupère les données d'une annonce Airbnb via leur API interne.
 // POST { url: string }
 // → { title, description, bedrooms, bathrooms, maxGuests, surface, neighborhood, photos }
+//
+// On utilise l'API v2 d'Airbnb (clé publique embarquée dans leur bundle JS).
+// Plus fiable que le scraping HTML qui est bloqué par Cloudflare depuis les IPs cloud.
 
 export const config = { runtime: "edge" };
+
+// Clé API publique Airbnb (visible dans leur bundle JS, inchangée depuis des années)
+const AIRBNB_API_KEY = "d306zoyjsyarp7uygyw5bd3aeq";
 
 type AirbnbResult = {
   title: string;
@@ -28,20 +34,11 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-/** Extrait récursivement toutes les URLs muscache dans un objet JSON. */
-function collectPhotoUrls(obj: unknown, found: Set<string> = new Set()): Set<string> {
-  if (typeof obj === "string") {
-    if (obj.includes("a0.muscache.com") && obj.includes("/pictures/")) {
-      found.add(obj.split("?")[0]); // base URL sans params de taille
-    }
-  } else if (Array.isArray(obj)) {
-    obj.forEach((v) => collectPhotoUrls(v, found));
-  } else if (obj && typeof obj === "object") {
-    Object.values(obj as Record<string, unknown>).forEach((v) =>
-      collectPhotoUrls(v, found),
-    );
-  }
-  return found;
+/** Extrait l'ID numérique de l'annonce depuis une URL Airbnb. */
+function extractListingId(rawUrl: string): string | null {
+  // https://www.airbnb.fr/rooms/1234567 → "1234567"
+  const m = rawUrl.match(/\/rooms\/(\d+)/);
+  return m ? m[1] : null;
 }
 
 /** Cherche récursivement la première valeur associée à une clé. */
@@ -63,25 +60,20 @@ function findByKey(obj: unknown, key: string): unknown {
   return undefined;
 }
 
-/** Cherche toutes les valeurs associées à une clé (pas juste la première). */
-function findAllByKey(obj: unknown, key: string, acc: unknown[] = []): unknown[] {
-  if (!obj || typeof obj !== "object") return acc;
-  if (Array.isArray(obj)) {
-    obj.forEach((v) => findAllByKey(v, key, acc));
-  } else {
-    const rec = obj as Record<string, unknown>;
-    if (key in rec) acc.push(rec[key]);
-    Object.values(rec).forEach((v) => findAllByKey(v, key, acc));
+/** Extrait récursivement toutes les URLs de photos muscache dans un objet JSON. */
+function collectPhotoUrls(obj: unknown, found: Set<string> = new Set()): Set<string> {
+  if (typeof obj === "string") {
+    if (obj.includes("muscache.com") && obj.includes("/pictures/")) {
+      found.add(obj.split("?")[0]);
+    }
+  } else if (Array.isArray(obj)) {
+    obj.forEach((v) => collectPhotoUrls(v, found));
+  } else if (obj && typeof obj === "object") {
+    Object.values(obj as Record<string, unknown>).forEach((v) =>
+      collectPhotoUrls(v, found),
+    );
   }
-  return acc;
-}
-
-/** Nettoie le titre Airbnb (retire " - Airbnb", "Séjour à …", etc.) */
-function cleanTitle(raw: string): string {
-  return raw
-    .replace(/\s*[-–|]\s*Airbnb$/i, "")
-    .replace(/^(Séjour à|Stay at|Logement à|Entire [\w\s]+ in)\s*/i, "")
-    .trim();
+  return found;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -89,110 +81,72 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") return json({ error: "Méthode non autorisée" }, 405);
 
   // ── Parse body ──────────────────────────────────────────────────────────
-  let cleanUrl: string;
+  let listingId: string;
   try {
     const body = (await req.json()) as { url?: string };
     let rawUrl = (body.url ?? "").trim();
     if (!rawUrl) throw new Error("URL manquante");
     if (!rawUrl.startsWith("http")) rawUrl = "https://" + rawUrl;
+
     const parsed = new URL(rawUrl);
     if (!parsed.hostname.includes("airbnb"))
       throw new Error("URL Airbnb invalide (domaine non reconnu)");
-    // On ne garde que le chemin /rooms/ID — les query params (check_in, search_mode…)
-    // déclenchent des redirects cookie en boucle infinie.
-    cleanUrl = `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
+
+    const id = extractListingId(rawUrl);
+    if (!id) throw new Error("Impossible d'extraire l'ID de l'annonce depuis l'URL");
+    listingId = id;
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "URL invalide" }, 400);
   }
 
-  // ── Fetch page Airbnb (redirects manuels pour gérer les cookies) ──────────
-  let html: string;
+  // ── Appel API Airbnb v2 ─────────────────────────────────────────────────
+  // Endpoint utilisé par le site Airbnb lui-même (clé API publique dans leur bundle JS).
+  const apiUrl =
+    `https://www.airbnb.com/api/v2/pdp_listing_details` +
+    `?id=${listingId}` +
+    `&_format=for_rooms_show` +
+    `&key=${AIRBNB_API_KEY}`;
+
+  let apiData: Record<string, unknown>;
   try {
-    const BASE_HEADERS: Record<string, string> = {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Cache-Control": "no-cache",
-      Referer: "https://www.google.com/",
-      DNT: "1",
-    };
+    const res = await fetch(apiUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        Accept: "application/json",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "X-Airbnb-API-Key": AIRBNB_API_KEY,
+        Referer: `https://www.airbnb.com/rooms/${listingId}`,
+      },
+      redirect: "follow",
+    });
 
-    // On suit les redirects manuellement pour accumuler les cookies.
-    // Airbnb redirige une première fois pour setter _bev et _everest_session.
-    let currentUrl = cleanUrl;
-    let cookieJar = "";
-    let finalRes: Response | null = null;
-
-    for (let hop = 0; hop < 6; hop++) {
-      const res = await fetch(currentUrl, {
-        headers: {
-          ...BASE_HEADERS,
-          ...(cookieJar ? { Cookie: cookieJar } : {}),
-        },
-        redirect: "manual",
-      });
-
-      // Accumuler les Set-Cookie
-      const setCookie = res.headers.get("set-cookie");
-      if (setCookie) {
-        // Extraire uniquement "name=value" (sans les attributs path/domain/expires)
-        const newPairs = setCookie
-          .split(/,\s*(?=[^;]+=)/)
-          .map((c) => c.split(";")[0].trim())
-          .filter(Boolean)
-          .join("; ");
-        cookieJar = cookieJar ? `${cookieJar}; ${newPairs}` : newPairs;
-      }
-
-      if (res.status >= 200 && res.status < 300) {
-        finalRes = res;
-        break;
-      }
-
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get("location");
-        if (!location) throw new Error("Redirect sans Location header");
-        currentUrl = new URL(location, currentUrl).toString();
-        continue;
-      }
-
-      if (res.status === 403 || res.status === 503) {
-        return json(
-          { error: "Airbnb a bloqué la requête (protection anti-bot). Réessaie dans quelques secondes." },
-          502,
-        );
-      }
-
-      return json({ error: `Airbnb a répondu ${res.status}` }, 502);
-    }
-
-    if (!finalRes) {
-      return json({ error: "Trop de redirections — Airbnb bloque l'accès depuis ce serveur." }, 502);
-    }
-
-    html = await finalRes.text();
-
-    // Cloudflare challenge check
-    if (
-      html.includes("cf-browser-verification") ||
-      html.includes("challenge-platform") ||
-      html.includes("Just a moment")
-    ) {
+    if (res.status === 403 || res.status === 401) {
       return json(
-        { error: "Airbnb utilise une protection Cloudflare. Réessaie dans quelques secondes." },
+        { error: "Airbnb a refusé l'accès à l'API. L'annonce est peut-être privée ou supprimée." },
         502,
       );
     }
+    if (res.status === 404) {
+      return json({ error: `Annonce introuvable (ID: ${listingId})` }, 404);
+    }
+    if (!res.ok) {
+      return json({ error: `Airbnb API a répondu ${res.status}` }, 502);
+    }
+
+    apiData = (await res.json()) as Record<string, unknown>;
   } catch (e) {
     return json(
-      { error: `Impossible d'accéder à la page : ${e instanceof Error ? e.message : "erreur réseau"}` },
+      { error: `Erreur API Airbnb : ${e instanceof Error ? e.message : "inconnue"}` },
       502,
     );
   }
 
-  // ── Parse HTML ──────────────────────────────────────────────────────────
+  // ── Extraction des données ──────────────────────────────────────────────
+  const listing = (
+    (apiData.pdp_listing_detail as Record<string, unknown>) ?? apiData
+  ) as Record<string, unknown>;
+
   const result: AirbnbResult = {
     title: "",
     description: "",
@@ -204,106 +158,78 @@ export default async function handler(req: Request): Promise<Response> {
     photos: [],
   };
 
-  // Meta OG — toujours présentes même sans JS
+  // Titre
   result.title =
-    cleanTitle(
-      html.match(/property="og:title"\s+content="([^"]+)"/)?.[1] ||
-        html.match(/content="([^"]+)"\s+property="og:title"/)?.[1] ||
-        html.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] ||
-        "",
-    );
+    (listing.name as string) ??
+    (findByKey(apiData, "name") as string) ??
+    "";
 
-  result.description = (
-    html.match(/property="og:description"\s+content="([^"]+)"/)?.[1] ||
-    html.match(/content="([^"]+)"\s+property="og:description"/)?.[1] ||
-    ""
-  )
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
+  // Description (plusieurs champs possibles selon la version)
+  result.description =
+    (listing.summary as string) ||
+    (listing.description as string) ||
+    ((findByKey(apiData, "summary") as string) ?? "") ||
+    ((findByKey(apiData, "description") as string) ?? "");
 
-  // __NEXT_DATA__ — source principale
-  const nextDataMatch = html.match(
-    /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/,
-  );
+  // Chiffres clés
+  const bedrooms = listing.bedrooms ?? findByKey(apiData, "bedrooms");
+  if (typeof bedrooms === "number") result.bedrooms = Math.round(bedrooms);
 
-  if (nextDataMatch) {
-    try {
-      const data = JSON.parse(nextDataMatch[1]) as unknown;
+  const bathrooms = listing.bathrooms ?? findByKey(apiData, "bathrooms");
+  if (typeof bathrooms === "number") result.bathrooms = Math.ceil(bathrooms);
 
-      // Photos
-      const photoBaseUrls = collectPhotoUrls(data);
-      result.photos = [...photoBaseUrls].map(
-        (u) => u + "?aki_policy=xx_large",
-      );
+  const capacity =
+    listing.person_capacity ??
+    listing.personCapacity ??
+    findByKey(apiData, "person_capacity") ??
+    findByKey(apiData, "personCapacity");
+  if (typeof capacity === "number") result.maxGuests = capacity;
 
-      // Données de la fiche
-      const bedrooms = findByKey(data, "bedrooms") ?? findByKey(data, "bedroomCount");
-      if (typeof bedrooms === "number") result.bedrooms = Math.round(bedrooms);
-
-      const bathrooms = findByKey(data, "bathrooms") ?? findByKey(data, "bathroomCount");
-      if (typeof bathrooms === "number") result.bathrooms = Math.ceil(bathrooms);
-
-      const capacity =
-        findByKey(data, "personCapacity") ??
-        findByKey(data, "person_capacity") ??
-        findByKey(data, "maxGuestCapacity");
-      if (typeof capacity === "number") result.maxGuests = capacity;
-
-      // Surface (rare chez Airbnb mais parfois présente)
-      const sqft = findByKey(data, "squareFeet") ?? findByKey(data, "square_feet");
-      if (typeof sqft === "number" && sqft > 0) {
-        const sqm = Math.round(sqft * 0.0929);
-        result.surface = `${sqm} m²`;
-      }
-
-      // Localisation
-      const city =
-        findByKey(data, "city") ?? findByKey(data, "publicAddress");
-      if (typeof city === "string" && city) result.neighborhood = city;
-
-      // Si pas trouvé via les clés connues, tenter le texte de la page pour les chiffres
-      if (!result.bedrooms) {
-        const labels = findAllByKey(data, "title") as string[];
-        for (const label of labels) {
-          const m = label.match(/(\d+)\s*(?:chambre|bedroom)/i);
-          if (m) {
-            result.bedrooms = parseInt(m[1]);
-            break;
-          }
-        }
-      }
-    } catch {
-      // JSON mal formé — on continue avec ce qu'on a
-    }
+  // Surface (rarement disponible sur Airbnb)
+  const sqft =
+    listing.square_feet ?? listing.squareFeet ?? findByKey(apiData, "square_feet");
+  if (typeof sqft === "number" && sqft > 0) {
+    result.surface = `${Math.round(sqft * 0.0929)} m²`;
   }
 
-  // Fallback texte brut pour les chiffres clés
-  if (!result.bedrooms) {
-    const m = html.match(/(\d+)\s*(?:chambre|bedroom)/i);
-    if (m) result.bedrooms = parseInt(m[1]);
-  }
-  if (!result.bathrooms) {
-    const m = html.match(/(\d+(?:[.,]\d)?)\s*(?:salle(?:s)? de bains?|bathroom)/i);
-    if (m) result.bathrooms = Math.ceil(parseFloat(m[1].replace(",", ".")));
-  }
-  if (!result.maxGuests) {
-    const m = html.match(/(\d+)\s*(?:voyageur|guest|personne)/i);
-    if (m) result.maxGuests = parseInt(m[1]);
-  }
+  // Localisation
+  const neighborhood =
+    (listing.neighborhood_overview as string) ||
+    (listing.city as string) ||
+    (listing.public_address as string) ||
+    ((findByKey(apiData, "city") as string) ?? "");
+  result.neighborhood = neighborhood;
 
-  // Si aucune photo trouvée dans __NEXT_DATA__, chercher dans les balises <img>
-  if (result.photos.length === 0) {
-    const imgMatches = [...html.matchAll(/https:\/\/a0\.muscache\.com\/[^"'\s]+/g)];
+  // Photos — l'API retourne un tableau `photos` avec `large`, `xx_large`, etc.
+  const rawPhotos =
+    (listing.photos as unknown[]) ??
+    (findByKey(apiData, "photos") as unknown[]) ??
+    [];
+
+  if (Array.isArray(rawPhotos) && rawPhotos.length > 0) {
     const seen = new Set<string>();
-    for (const [url] of imgMatches) {
-      const base = url.split("?")[0];
-      if (!seen.has(base)) {
-        seen.add(base);
-        result.photos.push(base + "?aki_policy=xx_large");
+    for (const p of rawPhotos) {
+      if (!p || typeof p !== "object") continue;
+      const photo = p as Record<string, unknown>;
+      // Priorité : xx_large > x_large > large > picture
+      const url =
+        (photo.xx_large as string) ||
+        (photo.x_large as string) ||
+        (photo.large as string) ||
+        (photo.picture as string) ||
+        (photo.url as string) ||
+        "";
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        result.photos.push(url);
       }
     }
+  }
+
+  // Fallback : chercher les URLs muscache partout dans la réponse
+  if (result.photos.length === 0) {
+    const found = collectPhotoUrls(apiData);
+    result.photos = [...found].map((u) => u + "?aki_policy=xx_large");
   }
 
   return json(result);
