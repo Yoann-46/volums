@@ -89,48 +89,90 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") return json({ error: "Méthode non autorisée" }, 405);
 
   // ── Parse body ──────────────────────────────────────────────────────────
-  let rawUrl: string;
+  let cleanUrl: string;
   try {
     const body = (await req.json()) as { url?: string };
-    rawUrl = (body.url ?? "").trim();
+    let rawUrl = (body.url ?? "").trim();
     if (!rawUrl) throw new Error("URL manquante");
     if (!rawUrl.startsWith("http")) rawUrl = "https://" + rawUrl;
     const parsed = new URL(rawUrl);
     if (!parsed.hostname.includes("airbnb"))
       throw new Error("URL Airbnb invalide (domaine non reconnu)");
+    // On ne garde que le chemin /rooms/ID — les query params (check_in, search_mode…)
+    // déclenchent des redirects cookie en boucle infinie.
+    cleanUrl = `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "URL invalide" }, 400);
   }
 
-  // ── Fetch page Airbnb ────────────────────────────────────────────────────
+  // ── Fetch page Airbnb (redirects manuels pour gérer les cookies) ──────────
   let html: string;
   try {
-    const res = await fetch(rawUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cache-Control": "no-cache",
-        Referer: "https://www.google.com/",
-        DNT: "1",
-      },
-      redirect: "follow",
-    });
+    const BASE_HEADERS: Record<string, string> = {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cache-Control": "no-cache",
+      Referer: "https://www.google.com/",
+      DNT: "1",
+    };
 
-    if (res.status === 403 || res.status === 503) {
-      return json(
-        {
-          error:
-            "Airbnb a bloqué la requête (protection anti-bot). Réessaie dans quelques secondes ou depuis un autre réseau.",
+    // On suit les redirects manuellement pour accumuler les cookies.
+    // Airbnb redirige une première fois pour setter _bev et _everest_session.
+    let currentUrl = cleanUrl;
+    let cookieJar = "";
+    let finalRes: Response | null = null;
+
+    for (let hop = 0; hop < 6; hop++) {
+      const res = await fetch(currentUrl, {
+        headers: {
+          ...BASE_HEADERS,
+          ...(cookieJar ? { Cookie: cookieJar } : {}),
         },
-        502,
-      );
-    }
-    if (!res.ok) return json({ error: `Airbnb a répondu ${res.status}` }, 502);
+        redirect: "manual",
+      });
 
-    html = await res.text();
+      // Accumuler les Set-Cookie
+      const setCookie = res.headers.get("set-cookie");
+      if (setCookie) {
+        // Extraire uniquement "name=value" (sans les attributs path/domain/expires)
+        const newPairs = setCookie
+          .split(/,\s*(?=[^;]+=)/)
+          .map((c) => c.split(";")[0].trim())
+          .filter(Boolean)
+          .join("; ");
+        cookieJar = cookieJar ? `${cookieJar}; ${newPairs}` : newPairs;
+      }
+
+      if (res.status >= 200 && res.status < 300) {
+        finalRes = res;
+        break;
+      }
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (!location) throw new Error("Redirect sans Location header");
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+
+      if (res.status === 403 || res.status === 503) {
+        return json(
+          { error: "Airbnb a bloqué la requête (protection anti-bot). Réessaie dans quelques secondes." },
+          502,
+        );
+      }
+
+      return json({ error: `Airbnb a répondu ${res.status}` }, 502);
+    }
+
+    if (!finalRes) {
+      return json({ error: "Trop de redirections — Airbnb bloque l'accès depuis ce serveur." }, 502);
+    }
+
+    html = await finalRes.text();
 
     // Cloudflare challenge check
     if (
@@ -139,18 +181,13 @@ export default async function handler(req: Request): Promise<Response> {
       html.includes("Just a moment")
     ) {
       return json(
-        {
-          error:
-            "Airbnb utilise une protection Cloudflare sur cette page. Essaie depuis la version mobile de l'URL (/s/ ou ?_format=) ou patiente quelques secondes.",
-        },
+        { error: "Airbnb utilise une protection Cloudflare. Réessaie dans quelques secondes." },
         502,
       );
     }
   } catch (e) {
     return json(
-      {
-        error: `Impossible d'accéder à la page : ${e instanceof Error ? e.message : "erreur réseau"}`,
-      },
+      { error: `Impossible d'accéder à la page : ${e instanceof Error ? e.message : "erreur réseau"}` },
       502,
     );
   }
