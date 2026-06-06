@@ -14,10 +14,12 @@ type Ctx = {
 const LangContext = createContext<Ctx | null>(null);
 
 const readInitial = (): Lang => {
-  if (typeof window === "undefined") return "fr";
+  // Langue par défaut : EN (audience internationale). Une préférence déjà
+  // enregistrée par le visiteur (toggle FR/EN) reste prioritaire.
+  if (typeof window === "undefined") return "en";
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "fr" || stored === "en") return stored;
-  return "fr";
+  return "en";
 };
 
 export const LangProvider = ({ children }: { children: ReactNode }) => {
