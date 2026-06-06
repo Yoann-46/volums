@@ -17,6 +17,13 @@
 
 export const config = { runtime: "edge" };
 
+// Une photo + sa pièce (issue du "room tour" Airbnb, mappé sur les RoomKey Volums).
+type ScrapedPhoto = {
+  url: string;
+  room: string | null; // salon | salle_a_manger | cuisine | chambre | sdb | entree | bureau | exterieur | null
+  roomIndex: number | null; // seulement pour chambre / sdb
+};
+
 type AirbnbResult = {
   title: string;
   description: string;
@@ -25,8 +32,30 @@ type AirbnbResult = {
   maxGuests: number;
   surface: string;
   neighborhood: string;
-  photos: string[];
+  photos: ScrapedPhoto[];
 };
+
+/**
+ * Mappe un titre de pièce du "room tour" Airbnb (FR ou EN) vers une RoomKey Volums.
+ * Ex: "Chambre 2" → {room:"chambre", index:2} ; "Salon" → {room:"salon", index:null}.
+ * "Photos supplémentaires" / inconnu → {room:null} (laissé à classer manuellement).
+ */
+function classifyRoomTitle(title: string): { room: string | null; index: number | null } {
+  const s = title.toLowerCase();
+  const numMatch = title.match(/(\d+)/);
+  const index = numMatch ? parseInt(numMatch[1]) : null;
+  if (/salle de bain|salle d.eau|bathroom/.test(s)) return { room: "sdb", index };
+  if (/chambre|bedroom/.test(s)) return { room: "chambre", index };
+  if (/cuisine|kitchen/.test(s)) return { room: "cuisine", index: null };
+  if (/salle à manger|salle a manger|dining/.test(s))
+    return { room: "salle_a_manger", index: null };
+  if (/salon|séjour|sejour|living/.test(s)) return { room: "salon", index: null };
+  if (/entrée|entree|hall|couloir|entry/.test(s)) return { room: "entree", index: null };
+  if (/bureau|office/.test(s)) return { room: "bureau", index: null };
+  if (/terrasse|balcon|extérieur|exterieur|jardin|outdoor|exterior/.test(s))
+    return { room: "exterieur", index: null };
+  return { room: null, index: null };
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -146,57 +175,67 @@ function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
     if (meta) result.description = unescapeJson(meta[1]);
   }
 
-  // ── Photos ──────────────────────────────────────────────────────────────
-  //    Airbnb référence les photos d'une MÊME annonce sous deux préfixes :
-  //      - Hosting-<id numérique>           (ex: Hosting-1479089889861115198)
-  //      - Hosting-<id GraphQL base64>      (ex: Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTQ3…)
-  //    Aucune des deux formes n'est complète seule → il faut l'union.
-  //    On accepte un préfixe SI : c'est l'id numérique, OU un base64 qui décode
-  //    vers l'id numérique (garde-fou contre les annonces recommandées en bas de page).
+  // ── Photos + catégorisation par pièce ───────────────────────────────────
+  //    Airbnb expose un "room tour" : chaque pièce a un titre ("Salon",
+  //    "Chambre 1"…) + une liste d'imageIds numériques. En parallèle, chaque
+  //    objet photo porte "id" (numérique) + "baseUrl". On croise les deux pour
+  //    obtenir url + pièce pour CHAQUE photo, mappé sur les RoomKey Volums.
   const normalized = html.replace(/\\u002[Ff]/g, "/").replace(/\\\//g, "/");
 
-  const belongsToListing = (token: string): boolean => {
-    if (token === listingId) return true;
-    // base64 → "StaySupplyListing:<id>" doit contenir l'id numérique
-    if (/^[A-Za-z0-9+/=]{20,}$/.test(token)) {
-      try {
-        return atob(token).includes(listingId);
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  };
-
-  const photoRegex =
-    /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/Hosting-([^/]+)\/[^\s"\\]+/g;
-  const byUuid = new Map<string, string>();
-  for (const m of normalized.matchAll(photoRegex)) {
-    const token = m[1];
-    if (!belongsToListing(token)) continue;
-    const base = m[0].split("?")[0];
-    const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
-    if (uuid && !byUuid.has(uuid)) {
-      byUuid.set(uuid, base + "?im_w=1440");
+  // 1) Map imageId(numérique) → url
+  const idToUrl = new Map<string, string>();
+  for (const m of normalized.matchAll(
+    /"id":"(\d{6,})"[\s\S]{0,250}?"baseUrl":"(https:\/\/a0\.muscache\.com[^"]+)"/g,
+  )) {
+    if (!idToUrl.has(m[1])) {
+      idToUrl.set(m[1], m[2].split("?")[0] + "?im_w=1440");
     }
   }
-  result.photos = [...byUuid.values()];
 
-  // Fallback : si rien trouvé, prendre toutes les photos hosting (hors assets/users)
+  // 2) Parcourt les sections du room tour dans l'ordre
+  const usedUrls = new Set<string>();
+  for (const tour of normalized.matchAll(
+    /"title":"([^"]+)","imageIds":\[([^\]]+)\]/g,
+  )) {
+    const { room, index } = classifyRoomTitle(tour[1]);
+    const ids = tour[2].split(",").map((s) => s.replace(/"/g, "").trim()).filter(Boolean);
+    for (const id of ids) {
+      const url = idToUrl.get(id);
+      if (!url || usedUrls.has(url)) continue;
+      usedUrls.add(url);
+      result.photos.push({
+        url,
+        room,
+        roomIndex: room === "chambre" || room === "sdb" ? index : null,
+      });
+    }
+  }
+
+  // 3) Fallback : pas de room tour exploitable → toutes les photos hosting,
+  //    non catégorisées (l'utilisateur classera dans le PhotoManager).
   if (result.photos.length === 0) {
-    const generic =
-      normalized.match(
-        /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/[^\s"\\]+/g,
-      ) ?? [];
-    const seen = new Set<string>();
-    for (const raw of generic) {
-      if (raw.includes("AirbnbPlatformAssets")) continue;
-      const base = raw.split("?")[0];
-      const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
-      if (uuid && !seen.has(uuid)) {
-        seen.add(uuid);
-        result.photos.push(base + "?im_w=1440");
+    const belongsToListing = (token: string): boolean => {
+      if (token === listingId) return true;
+      if (/^[A-Za-z0-9+/=]{20,}$/.test(token)) {
+        try {
+          return atob(token).includes(listingId);
+        } catch {
+          return false;
+        }
       }
+      return false;
+    };
+    const byUuid = new Map<string, string>();
+    for (const m of normalized.matchAll(
+      /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/Hosting-([^/]+)\/[^\s"\\]+/g,
+    )) {
+      if (!belongsToListing(m[1])) continue;
+      const base = m[0].split("?")[0];
+      const uuid = base.match(/\/([a-f0-9-]{36})\./)?.[1];
+      if (uuid && !byUuid.has(uuid)) byUuid.set(uuid, base + "?im_w=1440");
+    }
+    for (const url of byUuid.values()) {
+      result.photos.push({ url, room: null, roomIndex: null });
     }
   }
 

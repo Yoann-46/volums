@@ -351,7 +351,13 @@ export const listPhotos = async (propertyId: string) => {
 export const uploadPhoto = async (
   propertyId: string,
   file: File,
-  meta: { label: string; caption: string; sort_order: number },
+  meta: {
+    label: string;
+    caption: string;
+    sort_order: number;
+    room?: string | null;
+    room_index?: number | null;
+  },
 ) => {
   const sb = must();
   const ext = file.name.split(".").pop() ?? "jpg";
@@ -368,6 +374,8 @@ export const uploadPhoto = async (
       label: meta.label,
       caption: meta.caption,
       sort_order: meta.sort_order,
+      room: meta.room ?? null,
+      room_index: meta.room_index ?? null,
     })
     .select()
     .single();

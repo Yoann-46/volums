@@ -6,6 +6,12 @@ import { compressImage } from "../lib/compressImage";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+type ScrapedPhoto = {
+  url: string;
+  room: string | null;
+  roomIndex: number | null;
+};
+
 type ScrapedData = {
   title: string;
   description: string;
@@ -14,7 +20,25 @@ type ScrapedData = {
   maxGuests: number;
   surface: string;
   neighborhood: string;
-  photos: string[];
+  photos: ScrapedPhoto[];
+};
+
+// Libellés FR des pièces (pour les badges de catégorisation).
+const ROOM_LABELS: Record<string, string> = {
+  salon: "Salon",
+  salle_a_manger: "Salle à manger",
+  cuisine: "Cuisine",
+  chambre: "Chambre",
+  sdb: "Salle de bains",
+  entree: "Entrée",
+  bureau: "Bureau",
+  exterieur: "Extérieur",
+};
+
+const roomLabel = (p: ScrapedPhoto): string => {
+  if (!p.room) return "Non classé";
+  const base = ROOM_LABELS[p.room] ?? p.room;
+  return p.roomIndex ? `${base} ${p.roomIndex}` : base;
 };
 
 type FormState = {
@@ -160,7 +184,8 @@ const AirbnbImport = () => {
       let uploaded = 0;
       for (let i = 0; i < toUpload.length; i++) {
         setProgress({ current: i + 1, total: toUpload.length });
-        const file = await fetchPhotoAsFile(toUpload[i], i);
+        const photo = toUpload[i];
+        const file = await fetchPhotoAsFile(photo.url, i);
         if (!file) continue;
         try {
           const { file: compressed } = await compressImage(file);
@@ -168,6 +193,8 @@ const AirbnbImport = () => {
             label: String(uploaded + 1).padStart(2, "0"),
             caption: "",
             sort_order: uploaded,
+            room: photo.room,
+            room_index: photo.roomIndex,
           });
           uploaded++;
         } catch {
@@ -344,7 +371,7 @@ const AirbnbImport = () => {
               </p>
             ) : (
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                {scraped.photos.map((photoUrl, i) => {
+                {scraped.photos.map((photo, i) => {
                   const selected = selectedPhotos.has(i);
                   return (
                     <button
@@ -358,11 +385,21 @@ const AirbnbImport = () => {
                       }`}
                     >
                       <img
-                        src={photoUrl}
+                        src={photo.url}
                         alt={`Photo ${i + 1}`}
                         className="absolute inset-0 w-full h-full object-cover"
                         loading="lazy"
                       />
+                      {/* Badge pièce (catégorisation Airbnb) */}
+                      <span
+                        className={`absolute bottom-0 inset-x-0 px-1.5 py-0.5 font-mono-meta text-[0.6rem] leading-tight truncate ${
+                          photo.room
+                            ? "bg-ink/75 text-cream"
+                            : "bg-copper/80 text-cream"
+                        }`}
+                      >
+                        {roomLabel(photo)}
+                      </span>
                       {selected && (
                         <span className="absolute top-1 right-1 bg-copper text-cream w-5 h-5 flex items-center justify-center font-mono-meta text-xs">
                           ✓
