@@ -5,6 +5,7 @@ import { Wordmark } from "@/components/volums/Logo";
 import { RoomGallery } from "@/components/volums/RoomGallery";
 import { useAppartement, useAppartements, pickStr, pickArr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
+import { formatStayPeriod } from "@/lib/stayDates";
 import { useLang } from "@/i18n/LangContext";
 import { LangToggle } from "@/i18n/LangToggle";
 import { tFormat } from "@/i18n/translations";
@@ -249,7 +250,22 @@ const ApptDetail = () => {
             id="booking"
             className="lg:sticky lg:top-8 border border-hairline bg-cream-soft p-7 md:p-8 rounded-xl"
           >
-            {appt.loyerNum > 0 ? (
+            {appt.loyerNum <= 0 ? (
+              <div className="mt-2">
+                <span className="font-display text-3xl md:text-4xl">{t("price.onRequest")}</span>
+                <div className="mt-1 font-mono-meta text-slate">{t("detail.book.allInc")}</div>
+              </div>
+            ) : appt.pricingMode === "stay" && appt.stayStart && appt.stayEnd ? (
+              <>
+                <span className="font-mono-meta text-slate">{t("detail.book.forStay")}</span>
+                <div className="mt-2 flex items-baseline gap-3">
+                  <span className="font-display text-4xl md:text-5xl">{formatEuro(appt.loyerNum)}</span>
+                </div>
+                <div className="mt-1 font-mono-meta text-slate">
+                  {formatStayPeriod(appt.stayStart, appt.stayEnd, lang)} · {t("detail.book.allInc")}
+                </div>
+              </>
+            ) : (
               <>
                 <span className="font-mono-meta text-slate">{t("detail.book.from")}</span>
                 <div className="mt-2 flex items-baseline gap-3">
@@ -258,11 +274,6 @@ const ApptDetail = () => {
                 </div>
                 <div className="mt-1 font-mono-meta text-slate">{t("detail.book.allInc")}</div>
               </>
-            ) : (
-              <div className="mt-2">
-                <span className="font-display text-3xl md:text-4xl">{t("price.onRequest")}</span>
-                <div className="mt-1 font-mono-meta text-slate">{t("detail.book.allInc")}</div>
-              </div>
             )}
 
             <div className="mt-7 border border-hairline rounded-xl">
@@ -333,9 +344,11 @@ const ApptDetail = () => {
                       {a.surface} · {a.chambres} {t("detail.other.ch")}
                     </span>
                     <span className="text-ink">
-                      {a.loyerNum > 0
-                        ? `${formatEuro(a.loyerNum)} ${t("detail.other.perMonth")}`
-                        : t("price.onRequest")}
+                      {a.loyerNum <= 0
+                        ? t("price.onRequest")
+                        : a.pricingMode === "stay"
+                          ? `${formatEuro(a.loyerNum)} ${t("list.card.perStay")}`
+                          : `${formatEuro(a.loyerNum)} ${t("detail.other.perMonth")}`}
                     </span>
                   </div>
                 </div>

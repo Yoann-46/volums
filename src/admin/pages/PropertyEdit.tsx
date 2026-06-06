@@ -28,6 +28,9 @@ const empty: PropertyInput = {
   couchages: "",
   min_stay: "30 nuits",
   loyer_num: 0,
+  pricing_mode: "monthly",
+  stay_start: null,
+  stay_end: null,
   inclus: [""],
   is_published: true,
   sort_order: 0,
@@ -82,6 +85,9 @@ const PropertyEdit = () => {
         couchages: existing.couchages,
         min_stay: existing.min_stay,
         loyer_num: existing.loyer_num,
+        pricing_mode: existing.pricing_mode ?? "monthly",
+        stay_start: existing.stay_start ?? null,
+        stay_end: existing.stay_end ?? null,
         inclus: existing.inclus,
         is_published: existing.is_published,
         sort_order: existing.sort_order,
@@ -103,6 +109,7 @@ const PropertyEdit = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const isStay = (form.pricing_mode ?? "monthly") === "stay";
       const payload: PropertyInput = {
         ...form,
         slug: form.slug || slugify(`${form.name}-${form.name_italic}`),
@@ -110,6 +117,9 @@ const PropertyEdit = () => {
         inclus: form.inclus.filter((s) => s.trim()),
         long_description_en: (form.long_description_en ?? []).filter((s) => s.trim()),
         inclus_en: (form.inclus_en ?? []).filter((s) => s.trim()),
+        // En mode mensuel, on ne persiste pas de dates de séjour.
+        stay_start: isStay ? form.stay_start || null : null,
+        stay_end: isStay ? form.stay_end || null : null,
       };
       if (isNew) {
         const created = await createProperty(payload);
@@ -253,15 +263,81 @@ const PropertyEdit = () => {
           </Grid>
         </Section>
 
-        <Section title="Loyer">
-          <Field label="Loyer mensuel en € (ex: 7500)" hint="Affiché formaté sur le site (ex: 7 500 €)">
-            <input
-              type="number"
-              value={form.loyer_num}
-              onChange={(e) => set("loyer_num", parseInt(e.target.value) || 0)}
-              className={inputCls}
-            />
+        <Section title="Tarification">
+          {/* Choix du mode : loyer mensuel vs prix pour un séjour daté */}
+          <Field label="Mode de tarification">
+            <div className="flex gap-2">
+              {(
+                [
+                  ["monthly", "Au mois"],
+                  ["stay", "Séjour daté"],
+                ] as const
+              ).map(([value, label]) => {
+                const active = (form.pricing_mode ?? "monthly") === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => set("pricing_mode", value)}
+                    className={`px-4 h-10 font-mono-meta text-sm border transition-colors ${
+                      active
+                        ? "bg-ink text-cream border-ink"
+                        : "bg-cream-soft text-ink border-hairline hover:border-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </Field>
+
+          {(form.pricing_mode ?? "monthly") === "monthly" ? (
+            <Field
+              label="Loyer mensuel en € (ex: 7500)"
+              hint="Affiché formaté sur le site (ex: 7 500 € / mois). Laisser à 0 → « Prix sur demande »."
+            >
+              <input
+                type="number"
+                value={form.loyer_num}
+                onChange={(e) => set("loyer_num", parseInt(e.target.value) || 0)}
+                className={inputCls}
+              />
+            </Field>
+          ) : (
+            <>
+              <Field
+                label="Prix total du séjour en € (ex: 12000)"
+                hint="Montant total pour toute la période ci-dessous. Laisser à 0 → « Prix sur demande »."
+              >
+                <input
+                  type="number"
+                  value={form.loyer_num}
+                  onChange={(e) => set("loyer_num", parseInt(e.target.value) || 0)}
+                  className={inputCls}
+                />
+              </Field>
+              <Grid>
+                <Field label="Date de début du séjour">
+                  <input
+                    type="date"
+                    value={form.stay_start ?? ""}
+                    onChange={(e) => set("stay_start", e.target.value || null)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Date de fin du séjour">
+                  <input
+                    type="date"
+                    value={form.stay_end ?? ""}
+                    min={form.stay_start ?? undefined}
+                    onChange={(e) => set("stay_end", e.target.value || null)}
+                    className={inputCls}
+                  />
+                </Field>
+              </Grid>
+            </>
+          )}
         </Section>
 
         <Section title="Inclus de série">

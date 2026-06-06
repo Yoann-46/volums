@@ -21,6 +21,11 @@ export type PropertyInput = {
   inclus: string[];
   is_published: boolean;
   sort_order: number;
+  // Tarification — migration 0011
+  // 'monthly' : loyer_num = loyer mensuel ; 'stay' : loyer_num = total du séjour daté
+  pricing_mode?: "monthly" | "stay";
+  stay_start?: string | null; // YYYY-MM-DD
+  stay_end?: string | null; // YYYY-MM-DD
   // EN (nullable) — migration 0005
   dispo_en?: string | null;
   baseline_en?: string | null;

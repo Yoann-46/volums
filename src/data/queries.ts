@@ -26,6 +26,10 @@ type PropertyRow = {
   cover_photo_id: string | null;
   is_published: boolean;
   sort_order: number;
+  // Tarification — migration 0011
+  pricing_mode?: "monthly" | "stay";
+  stay_start?: string | null;
+  stay_end?: string | null;
   // EN (nullable — migration 0005)
   dispo_en?: string | null;
   baseline_en?: string | null;
@@ -83,6 +87,9 @@ const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
     couchages: p.couchages,
     minStay: p.min_stay,
     loyerNum: p.loyer_num,
+    pricingMode: p.pricing_mode ?? "monthly",
+    stayStart: p.stay_start ?? null,
+    stayEnd: p.stay_end ?? null,
     image: cover ? photoUrl(cover.storage_path) : "",
     gallery,
     inclus: p.inclus,

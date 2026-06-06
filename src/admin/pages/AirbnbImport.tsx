@@ -168,6 +168,8 @@ const AirbnbImport = () => {
         min_stay: "30 nuits",
         min_stay_en: "1 month minimum",
         loyer_num: parseInt(form.loyer_num) || 0,
+        // Biens Airbnb = séjours datés par défaut (loyer + dates à compléter dans l'édition).
+        pricing_mode: "stay",
         inclus: [],
         inclus_en: [],
         is_published: false, // brouillon — à publier depuis PropertyEdit

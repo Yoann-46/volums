@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 import { Nav } from "@/components/volums/Nav";
 import { useAppartements, pickStr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
+import { formatStayPeriodShort } from "@/lib/stayDates";
 import { useLang } from "@/i18n/LangContext";
 import { tFormat } from "@/i18n/translations";
 import type { Appt } from "@/data/types";
@@ -35,7 +36,11 @@ const matchesSearch = (a: Appt, raw: string) => {
 
 const Card = ({ a }: { a: Appt }) => {
   const { lang, t } = useLang();
-  const dispo = pickStr(lang, a.dispo, a.dispoEn);
+  const isStay = a.pricingMode === "stay" && a.stayStart && a.stayEnd;
+  // Mode séjour : la pastille "Dispo" affiche la période ; sinon le texte de dispo.
+  const dispo = isStay
+    ? formatStayPeriodShort(a.stayStart, a.stayEnd, lang)
+    : pickStr(lang, a.dispo, a.dispoEn);
 
   return (
     <Link
@@ -74,13 +79,18 @@ const Card = ({ a }: { a: Appt }) => {
         </div>
         <div className="mt-3 flex items-baseline justify-between">
           <span className="font-display text-lg">
-            {a.loyerNum > 0 ? (
+            {a.loyerNum <= 0 ? (
+              <span className="text-base">{t("price.onRequest")}</span>
+            ) : isStay ? (
+              <>
+                {formatEuro(a.loyerNum)}
+                <span className="text-slate text-sm"> {t("list.card.perStay")}</span>
+              </>
+            ) : (
               <>
                 {formatEuro(a.loyerNum)}
                 <span className="text-slate text-sm"> {t("list.card.perMonth")}</span>
               </>
-            ) : (
-              <span className="text-base">{t("price.onRequest")}</span>
             )}
           </span>
           <span className="font-mono-meta text-ink group-hover:text-copper text-xs">
@@ -331,8 +341,14 @@ const AppartementsList = () => {
     return Array.from(set).sort();
   }, [appartements]);
 
+  // Histogramme/bornes du curseur : uniquement les loyers mensuels (les totaux
+  // de séjour fausseraient l'échelle).
   const prices = useMemo(
-    () => appartements.map((a) => a.loyerNum).filter((n) => n > 0),
+    () =>
+      appartements
+        .filter((a) => a.pricingMode !== "stay")
+        .map((a) => a.loyerNum)
+        .filter((n) => n > 0),
     [appartements],
   );
 
@@ -361,8 +377,13 @@ const AppartementsList = () => {
       }
       if (surfaceMin !== "all" && numFromString(a.surface) < parseInt(surfaceMin))
         return false;
-      // Loyer non renseigné (0 = "prix sur demande") → jamais exclu par le filtre prix.
-      if (a.loyerNum > 0 && (a.loyerNum < loyerLo || a.loyerNum > loyerHi))
+      // Le filtre prix ne concerne que les loyers mensuels renseignés.
+      // Séjours datés + "prix sur demande" (loyer 0) → toujours visibles.
+      if (
+        a.pricingMode !== "stay" &&
+        a.loyerNum > 0 &&
+        (a.loyerNum < loyerLo || a.loyerNum > loyerHi)
+      )
         return false;
       return true;
     });

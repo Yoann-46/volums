@@ -39,6 +39,10 @@ export type Appt = {
   couchages: string;
   minStay: string;
   loyerNum: number;
+  // Tarification — migration 0011
+  pricingMode?: "monthly" | "stay";
+  stayStart?: string | null; // YYYY-MM-DD
+  stayEnd?: string | null; // YYYY-MM-DD
   image: string;
   gallery: Photo[];
   inclus: string[];

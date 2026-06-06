@@ -153,6 +153,7 @@ export const translations = {
     "list.card.ch": "ch.",
     "list.card.sdb": "sdb",
     "list.card.perMonth": "/mois",
+    "list.card.perStay": "le séjour",
     "price.onRequest": "Prix sur demande",
     "list.title.tab": "Tous les appartements — Volums",
 
@@ -176,6 +177,7 @@ export const translations = {
     "detail.sec.inclus.title.l2": "clé en main.",
     "detail.book.from": "À partir de",
     "detail.book.perMonth": "/ mois",
+    "detail.book.forStay": "Prix du séjour",
     "detail.book.allInc": "TTC",
     "detail.book.availFrom": "Disponible à partir du",
     "detail.book.minStay": "Séjour minimum",
@@ -366,6 +368,7 @@ export const translations = {
     "list.card.ch": "bed",
     "list.card.sdb": "bath",
     "list.card.perMonth": "/month",
+    "list.card.perStay": "the stay",
     "price.onRequest": "Price on request",
     "list.title.tab": "All apartments — Volums",
 
@@ -389,6 +392,7 @@ export const translations = {
     "detail.sec.inclus.title.l2": "turnkey.",
     "detail.book.from": "From",
     "detail.book.perMonth": "/ month",
+    "detail.book.forStay": "Stay price",
     "detail.book.allInc": "Tax incl.",
     "detail.book.availFrom": "Available from",
     "detail.book.minStay": "Minimum stay",
