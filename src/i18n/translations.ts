@@ -153,6 +153,7 @@ export const translations = {
     "list.card.ch": "ch.",
     "list.card.sdb": "sdb",
     "list.card.perMonth": "/mois",
+    "price.onRequest": "Prix sur demande",
     "list.title.tab": "Tous les appartements — Volums",
 
     // ApptDetail page
@@ -365,6 +366,7 @@ export const translations = {
     "list.card.ch": "bed",
     "list.card.sdb": "bath",
     "list.card.perMonth": "/month",
+    "price.onRequest": "Price on request",
     "list.title.tab": "All apartments — Volums",
 
     // ApptDetail page

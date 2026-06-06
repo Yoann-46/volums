@@ -74,8 +74,14 @@ const Card = ({ a }: { a: Appt }) => {
         </div>
         <div className="mt-3 flex items-baseline justify-between">
           <span className="font-display text-lg">
-            {formatEuro(a.loyerNum)}
-            <span className="text-slate text-sm"> {t("list.card.perMonth")}</span>
+            {a.loyerNum > 0 ? (
+              <>
+                {formatEuro(a.loyerNum)}
+                <span className="text-slate text-sm"> {t("list.card.perMonth")}</span>
+              </>
+            ) : (
+              <span className="text-base">{t("price.onRequest")}</span>
+            )}
           </span>
           <span className="font-mono-meta text-ink group-hover:text-copper text-xs">
             {t("appartements.card.see")}
@@ -355,7 +361,9 @@ const AppartementsList = () => {
       }
       if (surfaceMin !== "all" && numFromString(a.surface) < parseInt(surfaceMin))
         return false;
-      if (a.loyerNum < loyerLo || a.loyerNum > loyerHi) return false;
+      // Loyer non renseigné (0 = "prix sur demande") → jamais exclu par le filtre prix.
+      if (a.loyerNum > 0 && (a.loyerNum < loyerLo || a.loyerNum > loyerHi))
+        return false;
       return true;
     });
   }, [appartements, query, quartier, chambres, surfaceMin, loyerRange, bounds]);
