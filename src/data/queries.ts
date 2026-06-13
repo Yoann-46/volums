@@ -30,6 +30,9 @@ type PropertyRow = {
   pricing_mode?: "monthly" | "stay";
   stay_start?: string | null;
   stay_end?: string | null;
+  // Géolocalisation — migration 0012
+  latitude?: number | null;
+  longitude?: number | null;
   // EN (nullable — migration 0005)
   dispo_en?: string | null;
   baseline_en?: string | null;
@@ -90,6 +93,8 @@ const rowToAppt = (p: PropertyRow, photos: PhotoRow[]): Appt => {
     pricingMode: p.pricing_mode ?? "monthly",
     stayStart: p.stay_start ?? null,
     stayEnd: p.stay_end ?? null,
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
     image: cover ? photoUrl(cover.storage_path) : "",
     gallery,
     inclus: p.inclus,

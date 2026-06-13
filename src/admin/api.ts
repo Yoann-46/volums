@@ -26,6 +26,10 @@ export type PropertyInput = {
   pricing_mode?: "monthly" | "stay";
   stay_start?: string | null; // YYYY-MM-DD
   stay_end?: string | null; // YYYY-MM-DD
+  // Géolocalisation — migration 0012
+  latitude?: number | null;
+  longitude?: number | null;
+  geo_address?: string | null;
   // EN (nullable) — migration 0005
   dispo_en?: string | null;
   baseline_en?: string | null;

@@ -9,6 +9,7 @@ import {
   type PropertyInput,
 } from "../api";
 import { PhotoManager } from "../components/PhotoManager";
+import { LocationPicker } from "../components/LocationPicker";
 
 const empty: PropertyInput = {
   slug: "",
@@ -31,6 +32,9 @@ const empty: PropertyInput = {
   pricing_mode: "monthly",
   stay_start: null,
   stay_end: null,
+  latitude: null,
+  longitude: null,
+  geo_address: "",
   inclus: [""],
   is_published: true,
   sort_order: 0,
@@ -88,6 +92,9 @@ const PropertyEdit = () => {
         pricing_mode: existing.pricing_mode ?? "monthly",
         stay_start: existing.stay_start ?? null,
         stay_end: existing.stay_end ?? null,
+        latitude: existing.latitude ?? null,
+        longitude: existing.longitude ?? null,
+        geo_address: existing.geo_address ?? "",
         inclus: existing.inclus,
         is_published: existing.is_published,
         sort_order: existing.sort_order,
@@ -338,6 +345,24 @@ const PropertyEdit = () => {
               </Grid>
             </>
           )}
+        </Section>
+
+        <Section title="Localisation">
+          <LocationPicker
+            address={form.geo_address ?? ""}
+            latitude={form.latitude ?? null}
+            longitude={form.longitude ?? null}
+            onAddressChange={(v) => set("geo_address", v)}
+            onPick={(lat, lng) => {
+              if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                set("latitude", null);
+                set("longitude", null);
+              } else {
+                set("latitude", lat);
+                set("longitude", lng);
+              }
+            }}
+          />
         </Section>
 
         <Section title="Inclus de série">

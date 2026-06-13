@@ -3,6 +3,7 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { Share2, ArrowLeft } from "lucide-react";
 import { Wordmark } from "@/components/volums/Logo";
 import { RoomGallery } from "@/components/volums/RoomGallery";
+import { LocationMap } from "@/components/volums/LocationMap";
 import { useAppartement, useAppartements, pickStr, pickArr } from "@/data/queries";
 import { formatEuro } from "@/lib/format";
 import { formatStayPeriod } from "@/lib/stayDates";
@@ -298,6 +299,18 @@ const ApptDetail = () => {
           </div>
         </aside>
       </section>
+
+      {/* Localisation — carte zone approximative (si coordonnées renseignées) */}
+      {appt.latitude != null && appt.longitude != null && (
+        <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16">
+          <LocationMap
+            latitude={appt.latitude}
+            longitude={appt.longitude}
+            quartier={appt.quartier}
+            arrondissement={appt.arrondissement}
+          />
+        </section>
+      )}
 
       {/* Other apartments */}
       <section className="mx-auto max-w-[1440px] px-6 md:px-12 lg:px-16 mt-24 md:mt-32 pb-24 md:pb-32">

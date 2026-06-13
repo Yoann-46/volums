@@ -43,6 +43,9 @@ export type Appt = {
   pricingMode?: "monthly" | "stay";
   stayStart?: string | null; // YYYY-MM-DD
   stayEnd?: string | null; // YYYY-MM-DD
+  // Géolocalisation — migration 0012
+  latitude?: number | null;
+  longitude?: number | null;
   image: string;
   gallery: Photo[];
   inclus: string[];
