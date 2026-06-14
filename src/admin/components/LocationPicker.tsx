@@ -115,8 +115,10 @@ export const LocationPicker = ({
           scrollWheelZoom
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            subdomains="abcd"
+            maxZoom={20}
+            attribution='&copy; OpenStreetMap &copy; CARTO'
           />
           <ClickHandler onPick={onPick} />
           {hasPoint && (
