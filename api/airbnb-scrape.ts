@@ -211,8 +211,10 @@ function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
     }
   }
 
-  // 3) Fallback : pas de room tour exploitable → toutes les photos hosting,
-  //    non catégorisées (l'utilisateur classera dans le PhotoManager).
+  // 3) Fallback : pas de room tour exploitable (annonces anciennes ou gérées
+  //    par une conciergerie). On récupère toutes les photos de l'annonce, quel
+  //    que soit le segment de chemin (hosting, prohost-api, miso…), non
+  //    catégorisées — l'utilisateur classera dans le PhotoManager.
   if (result.photos.length === 0) {
     const belongsToListing = (token: string): boolean => {
       if (token === listingId) return true;
@@ -226,8 +228,9 @@ function parseAirbnbHtml(html: string, listingId: string): AirbnbResult {
       return false;
     };
     const byUuid = new Map<string, string>();
+    // [a-z0-9-]+ = segment avant "Hosting-" : hosting | prohost-api | miso | …
     for (const m of normalized.matchAll(
-      /https:\/\/a0\.muscache\.com\/im\/pictures\/hosting\/Hosting-([^/]+)\/[^\s"\\]+/g,
+      /https:\/\/a0\.muscache\.com\/im\/pictures\/[a-z0-9-]+\/Hosting-([^/]+)\/[^\s"\\]+/g,
     )) {
       if (!belongsToListing(m[1])) continue;
       const base = m[0].split("?")[0];
