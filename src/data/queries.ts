@@ -127,15 +127,26 @@ export const fetchAppartements = async (
   if (!props || props.length === 0) return [];
 
   const ids = (props as PropertyRow[]).map((p) => p.id);
-  const { data: photos, error: phErr } = await supabase
-    .from("property_photos")
-    .select("*")
-    .in("property_id", ids);
-  if (phErr) throw phErr;
 
-  return (props as PropertyRow[]).map((p) =>
-    rowToAppt(p, (photos ?? []) as PhotoRow[]),
-  );
+  // PostgREST plafonne une réponse à 1000 lignes. Le catalogue dépassant ce
+  // seuil (≈20-25 photos par bien), on pagine pour TOUT récupérer — sinon les
+  // photos des dernières fiches importées sont silencieusement tronquées.
+  const PAGE = 1000;
+  const photos: PhotoRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: batch, error: phErr } = await supabase
+      .from("property_photos")
+      .select("*")
+      .in("property_id", ids)
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (phErr) throw phErr;
+    const rows = (batch ?? []) as PhotoRow[];
+    photos.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+
+  return (props as PropertyRow[]).map((p) => rowToAppt(p, photos));
 };
 
 export const useAppartements = (opts: { includeUnpublished?: boolean } = {}) =>
