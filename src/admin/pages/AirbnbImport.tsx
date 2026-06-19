@@ -20,8 +20,20 @@ type ScrapedData = {
   maxGuests: number;
   surface: string;
   neighborhood: string;
+  latitude?: number | null;
+  longitude?: number | null;
   photos: ScrapedPhoto[];
 };
+
+// Détecte la source d'import et l'endpoint à appeler depuis l'URL saisie.
+function resolveSource(url: string): { endpoint: string; label: string } | null {
+  const u = url.toLowerCase();
+  if (u.includes("lecollectionist"))
+    return { endpoint: "/api/lecollectionist-scrape", label: "Le Collectionist" };
+  if (u.includes("airbnb"))
+    return { endpoint: "/api/airbnb-scrape", label: "Airbnb" };
+  return null;
+}
 
 // Libellés FR des pièces (pour les badges de catégorisation).
 const ROOM_LABELS: Record<string, string> = {
@@ -116,9 +128,14 @@ const AirbnbImport = () => {
 
   const handleScrape = async () => {
     if (!url.trim()) return;
+    const source = resolveSource(url);
+    if (!source) {
+      toast.error("URL non reconnue — colle un lien Airbnb ou Le Collectionist");
+      return;
+    }
     setStep("scraping");
     try {
-      const res = await fetch("/api/airbnb-scrape", {
+      const res = await fetch(source.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -168,8 +185,11 @@ const AirbnbImport = () => {
         min_stay: "30 nuits",
         min_stay_en: "1 month minimum",
         loyer_num: parseInt(form.loyer_num) || 0,
-        // Biens Airbnb = séjours datés par défaut (loyer + dates à compléter dans l'édition).
+        // Biens importés = séjours datés par défaut (loyer + dates à compléter dans l'édition).
         pricing_mode: "stay",
+        // GPS récupéré à l'import (Le Collectionist) → carte de localisation auto.
+        latitude: scraped.latitude ?? null,
+        longitude: scraped.longitude ?? null,
         inclus: [],
         inclus_en: [],
         is_published: false, // brouillon — à publier depuis PropertyEdit
@@ -241,9 +261,9 @@ const AirbnbImport = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-3xl md:text-4xl">Import Airbnb</h1>
+          <h1 className="font-display text-3xl md:text-4xl">Import d'annonce</h1>
           <p className="font-mono-meta text-sm text-slate mt-1">
-            Extraire les données d'une annonce Airbnb pour créer un appartement
+            Extraire les données d'une annonce Airbnb ou Le Collectionist
           </p>
         </div>
         <button
@@ -292,22 +312,22 @@ const AirbnbImport = () => {
         <section className="border border-hairline bg-cream-soft p-8">
           <label className="block mb-4">
             <span className="block font-mono-meta text-xs text-slate mb-2">
-              URL de l'annonce Airbnb
+              URL de l'annonce (Airbnb ou Le Collectionist)
             </span>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleScrape()}
-              placeholder="https://www.airbnb.fr/rooms/12345678"
+              placeholder="https://www.airbnb.fr/rooms/… ou https://www.lecollectionist.com/fr/location-luxe/…"
               className={inputCls + " text-base"}
               autoFocus
             />
           </label>
           <div className="flex items-center justify-between mt-6">
             <p className="font-mono-meta text-xs text-slate/60 max-w-md">
-              Fonctionne avec les URLs airbnb.fr et airbnb.com. Les données
-              photos et textes sont extraites automatiquement.
+              Fonctionne avec Airbnb (airbnb.fr / .com) et Le Collectionist. Les
+              photos et textes sont extraits automatiquement.
             </p>
             <button
               type="button"
@@ -328,7 +348,7 @@ const AirbnbImport = () => {
         <section className="border border-hairline bg-cream-soft p-8 text-center">
           <div className="font-display text-2xl mb-3">Extraction en cours…</div>
           <p className="font-mono-meta text-sm text-slate">
-            Lecture de la page Airbnb et analyse des données
+            Lecture de l'annonce et analyse des données
           </p>
           <div className="mt-6 flex justify-center gap-1">
             {[0, 1, 2].map((i) => (

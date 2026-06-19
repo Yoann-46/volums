@@ -1,10 +1,22 @@
 // Vercel Edge function — proxy d'images pour contourner le CORS.
 // GET /api/proxy-image?url=<encoded-url>
-// Seules les URLs Airbnb (muscache.com) sont autorisées.
+// Seules les URLs des sources d'import (Airbnb, Le Collectionist) sont autorisées.
 
 export const config = { runtime: "edge" };
 
-const ALLOWED_HOSTS = ["a0.muscache.com", "a1.muscache.com", "a2.muscache.com"];
+const ALLOWED_HOSTS = [
+  "a0.muscache.com",
+  "a1.muscache.com",
+  "a2.muscache.com",
+  "cdn.lecollectionist.com",
+];
+
+// Referer attendu par chaque CDN source (certains filtrent le hotlinking).
+function refererFor(hostname: string): string {
+  return hostname.includes("lecollectionist")
+    ? "https://www.lecollectionist.com/"
+    : "https://www.airbnb.com/";
+}
 
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
@@ -36,7 +48,7 @@ export default async function handler(req: Request): Promise<Response> {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        Referer: "https://www.airbnb.com/",
+        Referer: refererFor(parsed.hostname),
       },
     });
 

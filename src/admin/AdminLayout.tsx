@@ -51,7 +51,7 @@ export const AdminLayout = () => {
                 isActive ? "text-ink" : "text-slate hover:text-ink"
               }
             >
-              Import Airbnb
+              Import annonce
             </NavLink>
             <button
               onClick={async () => {
