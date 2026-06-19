@@ -30,6 +30,9 @@ export type PropertyInput = {
   latitude?: number | null;
   longitude?: number | null;
   geo_address?: string | null;
+  // Lien d'origine de l'import (Airbnb / Le Collectionist) — migration 0013
+  // Référence interne back-office, non affichée côté client.
+  source_url?: string | null;
   // EN (nullable) — migration 0005
   dispo_en?: string | null;
   baseline_en?: string | null;

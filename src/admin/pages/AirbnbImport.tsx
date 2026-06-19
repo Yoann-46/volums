@@ -214,6 +214,8 @@ const AirbnbImport = () => {
         // GPS récupéré à l'import (Le Collectionist) → carte de localisation auto.
         latitude: scraped.latitude ?? null,
         longitude: scraped.longitude ?? null,
+        // Lien d'origine conservé en back-office (jamais affiché côté client).
+        source_url: url.trim(),
         inclus: [],
         inclus_en: [],
         is_published: false, // brouillon — à publier depuis PropertyEdit

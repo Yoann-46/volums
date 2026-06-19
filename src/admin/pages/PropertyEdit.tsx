@@ -35,6 +35,7 @@ const empty: PropertyInput = {
   latitude: null,
   longitude: null,
   geo_address: "",
+  source_url: "",
   inclus: [""],
   is_published: true,
   sort_order: 0,
@@ -95,6 +96,7 @@ const PropertyEdit = () => {
         latitude: existing.latitude ?? null,
         longitude: existing.longitude ?? null,
         geo_address: existing.geo_address ?? "",
+        source_url: existing.source_url ?? "",
         inclus: existing.inclus,
         is_published: existing.is_published,
         sort_order: existing.sort_order,
@@ -363,6 +365,31 @@ const PropertyEdit = () => {
               }
             }}
           />
+        </Section>
+
+        <Section title="Source de l'import (back-office)">
+          <Field
+            label="Lien d'origine de l'annonce (Airbnb / Le Collectionist)"
+            hint="Référence interne — jamais affichée côté client."
+          >
+            <input
+              type="url"
+              value={form.source_url ?? ""}
+              onChange={(e) => set("source_url", e.target.value)}
+              placeholder="https://www.lecollectionist.com/fr/location-luxe/…"
+              className={inputCls}
+            />
+          </Field>
+          {form.source_url?.trim() && (
+            <a
+              href={form.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-2 font-mono-meta text-xs text-copper hover:text-ink"
+            >
+              Ouvrir l'annonce d'origine ↗
+            </a>
+          )}
         </Section>
 
         <Section title="Inclus de série">
