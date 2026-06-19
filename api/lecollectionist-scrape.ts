@@ -27,6 +27,7 @@ type ScrapedPhoto = { url: string; room: string | null; roomIndex: number | null
 type Result = {
   title: string;
   description: string;
+  descriptionEn: string; // anglais natif fourni par Le Collectionist
   bedrooms: number;
   bathrooms: number;
   maxGuests: number;
@@ -36,6 +37,13 @@ type Result = {
   longitude: number | null;
   photos: ScrapedPhoto[];
 };
+
+/** Assemble accroche + description détaillée d'une fiche en un seul texte. */
+function buildDescription(attr: any): string {
+  const lead = (attr?.leadText ?? "").trim();
+  const desc = (attr?.description ?? "").trim();
+  return [lead, desc].filter(Boolean).join("\n\n");
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -115,6 +123,7 @@ export default async function handler(req: Request): Promise<Response> {
   const result: Result = {
     title: attr.name ?? "",
     description: "",
+    descriptionEn: "",
     bedrooms: Number(attr.bedrooms) || 0,
     bathrooms: Number(attr.bathrooms) || 0,
     maxGuests: Number(attr.capacity) || 0,
@@ -126,10 +135,14 @@ export default async function handler(req: Request): Promise<Response> {
     photos: [],
   };
 
-  // Description : leadText (accroche) + description détaillée si présents.
-  const lead = (attr.leadText ?? "").trim();
-  const desc = (attr.description ?? "").trim();
-  result.description = [lead, desc].filter(Boolean).join("\n\n");
+  // Description FR : leadText (accroche) + description détaillée si présents.
+  result.description = buildDescription(attr);
+
+  // Description EN native : on re-interroge par ID numérique sans locale
+  // (anglais par défaut) → vraie traduction pro, sans service tiers. On utilise
+  // l'ID (pas le slug) car le slug diffère selon la langue.
+  const houseEn = await apiGet(`/houses/${numericId}`);
+  result.descriptionEn = buildDescription(houseEn?.data?.attributes);
 
   // ── 2) Ville (destination) ────────────────────────────────────────────────
   if (attr.destinationId) {

@@ -22,8 +22,29 @@ type ScrapedData = {
   neighborhood: string;
   latitude?: number | null;
   longitude?: number | null;
+  descriptionEn?: string; // anglais natif si la source le fournit (Le Collectionist)
   photos: ScrapedPhoto[];
 };
+
+// Récupère la version EN de la description : native si fournie, sinon traduite
+// via /api/translate (Airbnb). Non bloquant — renvoie "" en cas d'échec.
+async function getEnglishDescription(d: ScrapedData): Promise<string> {
+  if (d.descriptionEn && d.descriptionEn.trim()) return d.descriptionEn.trim();
+  if (!d.description?.trim()) return "";
+  try {
+    const res = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Seules baseline (120) + description courte (300) sont remplies à
+      // l'import → on ne traduit que le début utile.
+      body: JSON.stringify({ text: d.description.slice(0, 600) }),
+    });
+    const data = await res.json();
+    return (data.text ?? "").trim();
+  } catch {
+    return "";
+  }
+}
 
 // Détecte la source d'import et l'endpoint à appeler depuis l'URL saisie.
 function resolveSource(url: string): { endpoint: string; label: string } | null {
@@ -160,6 +181,9 @@ const AirbnbImport = () => {
     setStep("importing");
 
     try {
+      // Traduction EN auto de baseline + description courte (native ou via API).
+      const enText = await getEnglishDescription(scraped);
+
       // Construit le payload PropertyInput
       const payload: PropertyInput = {
         slug: "",
@@ -171,9 +195,9 @@ const AirbnbImport = () => {
         name: form.name,
         name_italic: form.name_italic,
         baseline: form.baseline,
-        baseline_en: "",
+        baseline_en: enText.slice(0, 120),
         short_description: form.short_description,
-        short_description_en: "",
+        short_description_en: enText.slice(0, 300),
         long_description: [],
         long_description_en: [],
         surface: form.surface,
@@ -182,8 +206,8 @@ const AirbnbImport = () => {
         etage: "",
         etage_en: "",
         couchages: form.couchages,
-        min_stay: "30 nuits",
-        min_stay_en: "1 month minimum",
+        min_stay: "",
+        min_stay_en: "",
         loyer_num: parseInt(form.loyer_num) || 0,
         // Biens importés = séjours datés par défaut (loyer + dates à compléter dans l'édition).
         pricing_mode: "stay",
