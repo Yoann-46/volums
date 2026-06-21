@@ -158,14 +158,11 @@ export const PhotoManager = ({
     }
   };
 
-  const move = async (idx: number, dir: -1 | 1) => {
-    const next = [...photos];
-    const j = idx + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[idx], next[j]] = [next[j], next[idx]];
+  // Persiste un nouvel ordre : n'écrit que les photos dont sort_order a changé.
+  const persistOrder = async (ordered: typeof photos) => {
     try {
       await Promise.all(
-        next.map((p, i) =>
+        ordered.map((p, i) =>
           p.sort_order !== i ? updatePhoto(p.id, { sort_order: i }) : Promise.resolve(),
         ),
       );
@@ -173,6 +170,25 @@ export const PhotoManager = ({
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur");
     }
+  };
+
+  const move = async (idx: number, dir: -1 | 1) => {
+    const next = [...photos];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    await persistOrder(next);
+  };
+
+  // Déplace la photo en position `to1based` (1-indexée) et ré-ordonne le reste.
+  // → un seul geste pour amener une photo n'importe où, même avec 80 photos.
+  const moveTo = async (from: number, to1based: number) => {
+    const to = Math.min(Math.max(1, to1based), photos.length) - 1;
+    if (to === from) return;
+    const next = [...photos];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    await persistOrder(next);
   };
 
   return (
@@ -205,8 +221,9 @@ export const PhotoManager = ({
       </div>
       {!uploading && (
         <p className="font-mono-meta text-xs text-slate/70">
-          Les photos sont automatiquement redimensionnées (max 2000 px) et compressées (JPEG)
-          avant l'envoi.
+          Le numéro à gauche = position : tape une valeur (puis Entrée) pour déplacer
+          la photo à cet emplacement. Les flèches ↑↓ ajustent d'un cran. Photos
+          redimensionnées (max 2000 px) et compressées avant l'envoi.
         </p>
       )}
 
@@ -232,12 +249,25 @@ export const PhotoManager = ({
                 </div>
                 <div className="flex gap-2 mb-2">
                   <input
-                    defaultValue={p.label}
-                    onBlur={(e) =>
-                      e.target.value !== p.label && onUpdateMeta(p.id, "label", e.target.value)
-                    }
-                    placeholder="01"
-                    className="w-16 border border-hairline bg-cream-soft px-2 py-1.5 text-sm"
+                    key={`pos-${p.id}-${idx}`}
+                    type="number"
+                    min={1}
+                    max={photos.length}
+                    defaultValue={idx + 1}
+                    onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur();
+                    }}
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      if (!v || v < 1 || v > photos.length || v === idx + 1) {
+                        e.target.value = String(idx + 1); // valeur invalide → on rétablit
+                        return;
+                      }
+                      moveTo(idx, v);
+                    }}
+                    title="Position — tape un numéro pour déplacer la photo ici"
+                    className="w-16 border border-hairline bg-cream-soft px-2 py-1.5 text-sm tabular-nums"
                   />
                   <input
                     defaultValue={p.caption}
