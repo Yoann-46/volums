@@ -291,7 +291,20 @@ const ApptDetail = () => {
             </dl>
 
             <a
-              href="mailto:contact@volums.fr"
+              href={(() => {
+                const apptName = `${appt.name} ${appt.nameItalic}`.trim();
+                const subject =
+                  lang === "en"
+                    ? `Reservation request — ${apptName} (ref. ${appt.ref})`
+                    : `Demande de réservation — ${apptName} (réf. ${appt.ref})`;
+                const body =
+                  lang === "en"
+                    ? `Hello,\n\nI would like to request a reservation for ${apptName} (ref. ${appt.ref}).\n\nDesired dates: \nNumber of guests: \n\nThank you,`
+                    : `Bonjour,\n\nJe souhaite faire une demande de réservation pour ${apptName} (réf. ${appt.ref}).\n\nDates souhaitées : \nNombre de voyageurs : \n\nMerci,`;
+                return `mailto:yoann.chevallier@gmail.com?subject=${encodeURIComponent(
+                  subject,
+                )}&body=${encodeURIComponent(body)}`;
+              })()}
               className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-ink text-cream py-3.5 rounded-xl font-mono-meta hover:bg-copper transition-colors"
             >
               {t("detail.bookCta")}
