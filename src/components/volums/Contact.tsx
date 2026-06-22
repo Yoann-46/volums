@@ -5,7 +5,11 @@ import { useLang } from "@/i18n/LangContext";
 export const Contact = () => {
   const { t } = useLang();
   const fields = [
-    { label: t("contact.email"), value: "hello@volums.fr", href: "mailto:hello@volums.fr" },
+    {
+      label: t("contact.email"),
+      value: "yoann.chevallier@gmail.com",
+      href: "mailto:yoann.chevallier@gmail.com",
+    },
     { label: t("contact.phone"), value: "+33 6 35 34 79 90", href: "tel:+33635347990" },
     { label: t("contact.office"), value: t("contact.officeValue") },
     { label: t("contact.web"), value: "www.volums.fr" },
@@ -57,7 +61,7 @@ export const Contact = () => {
           </dl>
 
           <a
-            href="mailto:hello@volums.fr"
+            href="mailto:yoann.chevallier@gmail.com"
             className="mt-12 inline-flex items-center gap-3 bg-ink text-cream px-7 py-4 rounded-xl font-mono-meta hover:bg-copper transition-colors w-fit"
           >
             {t("contact.cta")}

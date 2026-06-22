@@ -345,8 +345,8 @@ const BookingConfirmation = () => {
               Our team is available to assist you throughout your stay.
             </div>
           </div>
-          <a href="mailto:hello@volums.fr" className="bc-contact-email">
-            hello@volums.fr
+          <a href="mailto:yoann.chevallier@gmail.com" className="bc-contact-email">
+            yoann.chevallier@gmail.com
           </a>
         </div>
 
